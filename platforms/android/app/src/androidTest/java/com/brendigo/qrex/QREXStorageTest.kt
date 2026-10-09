@@ -29,6 +29,32 @@ class QREXStorageTest {
     }
 
     @Test
+    fun flutterV013HistoryMigratesWithoutLosingRecords() {
+        val prefs = context.getSharedPreferences("qrex.user", 0)
+        prefs.edit().clear().commit()
+        val flutter = context.getSharedPreferences("FlutterSharedPreferences", 0)
+        val old = org.json.JSONArray()
+            .put(org.json.JSONObject().put("raw", "https://brendigo.com")
+                .put("date", "2026-10-09T10:12:13.123")
+                .put("saved", true))
+            .put(org.json.JSONObject().put("raw", QRContent.wifi("Guest", "private_wifi_888"))
+                .put("date", "2026-10-09T10:14:13.123")
+                .put("saved", true))
+        assertTrue(flutter.edit().putString("flutter.qrex_history_v1", old.toString())
+            .putBoolean("flutter.qrex_record_v1", false)
+            .commit())
+        val store = QREXStore(context)
+        assertEquals(2, store.items.size)
+        assertTrue(store.items.any { it.raw == "https://brendigo.com" && it.saved })
+        assertTrue(store.items.any { it.raw.contains("private_wifi_888") && it.saved })
+        val protected = prefs.getString("history", "") ?: ""
+        assertFalse(protected.contains("private_wifi_888"))
+        assertFalse(flutter.contains("flutter.qrex_history_v1"))
+        assertFalse(store.historyEnabled)
+        store.clearAll()
+    }
+
+    @Test
     fun oldUnencryptedWifiHistoryIsMigratedOnStartup() {
         val prefs = context.getSharedPreferences("qrex.user", 0)
         prefs.edit().clear().commit()

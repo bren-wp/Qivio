@@ -40,6 +40,20 @@ final class QREXCoreTests: XCTestCase {
     }
 
     @MainActor
+    func testFlutterHistoryMigrationPreservesSavedCodes() {
+        let initial = QREXStore()
+        initial.clearAll()
+        let input = "[{\"raw\":\"https://brendigo.com\",\"date\":\"2026-10-09T10:12:13.123\",\"saved\":true}]"
+        UserDefaults.standard.set(input, forKey: "flutter.qrex_history_v1")
+        let restored = QREXStore()
+        XCTAssertTrue(restored.items.contains {
+            $0.raw == "https://brendigo.com" && $0.saved
+        })
+        XCTAssertNil(UserDefaults.standard.string(forKey: "flutter.qrex_history_v1"))
+        restored.clearAll()
+    }
+
+    @MainActor
     func testNoAutomaticWifiHistory() {
         let store = QREXStore()
         store.clearAll()
