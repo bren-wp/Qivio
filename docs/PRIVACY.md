@@ -1,38 +1,38 @@
-# QREX — Pravila privatnosti
+# QREX Privacy Policy
 
-**Zadnje ažuriranje:** 9. listopada 2026.  
-**Razvio:** Brendigo · [brendigo.com](https://brendigo.com)
+**Last updated:** October 9, 2026  
+**Developer:** Brendigo · https://brendigo.com
 
-QREX je Android/iOS aplikacija za lokalno skeniranje i stvaranje QR kodova. Nije potreban račun ni prijava. Ovaj dokument opisuje što aplikacija radi s podacima.
+QREX is an Android and iOS application for scanning and generating QR codes locally. No account, registration or sign-in is required.
 
-## 1. Podaci koje obrađuje
+## Information processed on your device
 
-- **Kamera:** slika kamere obrađuje se radi prepoznavanja QR koda, bez slanja videozapisa na poslužitelje razvojnog tima. Dopuštenje za kameru kontroliraš u postavkama uređaja.
-- **Fotografije:** datoteku odabireš iz sistemskog odabira fotografija. Odabrana slika analizira se za QR kod; QREX je ne prenosi na vlastiti poslužitelj.
-- **QR sadržaj:** poveznice, tekst, kontakt, lokacija, e-mail ili Wi-Fi podaci obrađuju se lokalno kako bi aplikacija prikazala rezultat ili izradila kod.
-- **Lokalna povijest:** ako je uključena, QR sadržaji i vrijeme skeniranja mogu se spremiti u lokalne postavke aplikacije, najviše 250 zapisa. Wi-Fi QR kodovi **ne spremaju se automatski**. Ručnim spremanjem Wi-Fi QR koda izričito spremaš i njegovu eventualnu lozinku.
-- **Postavke:** izbor izgleda i uključivanje/isključivanje povijesti pohranjuju se lokalno.
+- **Camera:** used to detect QR codes. The camera stream is processed locally; it is not uploaded to a QREX server. You may revoke camera permission in system settings.
+- **Images:** you select an image through the operating system's photo picker. QR detection runs locally on the selected image and QREX does not upload it.
+- **QR contents:** text, URLs, Wi-Fi credentials, contact details, locations and other input are processed locally when scanning or creating a code.
+- **Optional history:** if enabled, QR contents and scan time can be stored in the application's local data, capped at 250 items. Wi-Fi QR codes are **not automatically recorded**. Manually saving a Wi-Fi code may also save its password.
+- **Preferences:** your selected display theme, language and history preference are saved locally.
 
-Lokalna pohrana aplikacije nije namjenski šifrirani trezor. Nemoj spremati povjerljive lozinke ili druge tajne ako to nije nužno.
+**Important:** The current local storage is not a dedicated encrypted secrets vault. Avoid manually saving sensitive passwords. More protection is planned before the platform-focused apps replace the existing public release.
 
-## 2. Prikupljanje i dijeljenje
+## Data collection and sharing
 
-QREX u ovoj verziji nema vlastiti backend, račune, oglase ni analitičko praćenje. Razvojni tim ne zaprima sadržaj QR kodova ni lokalnu povijest. Aplikacija ih sama ne šalje u oblak.
+QREX does not provide accounts, advertising, an analytics service or its own backend to collect QR content. The developer does not receive QR scan contents or device-local history through the app.
 
-Ako svjesno odabereš **Otvori poveznicu**, **Pozovi**, **Pošalji e-mail**, **Karte** ili **Dijeli**, predani sadržaj obrađuje drugi pružatelj usluge/aplikacija prema svojim pravilima privatnosti. Vanjska web-mjesta mogu prikupljati podatke o pristupu. QR poveznice se ne otvaraju automatski.
+If you choose to open a URL, start a call, send an email, open a map or share information, another application or website may receive the content and apply its own privacy policy. QR URLs are not opened automatically.
 
-## 3. Trajanje pohrane i brisanje
+## Retention and deletion
 
-Lokalni podaci ostaju dok ih ne izbrišeš u aplikaciji ili dok uređaj/operacijski sustav ne ukloni podatke aplikacije. U **Više → Postavke** možeš isključiti bilježenje povijesti ili odabrati **Izbriši sve podatke** za brisanje povijesti, spremljenih kodova i lokalnih postavki. Deinstaliranje obično briše lokalne podatke aplikacije. Sigurnosne kopije operacijskog sustava mogu zadržati određene kopije prema korisničkim postavkama i pravilima sustava; Android automatski backup podataka aplikacije je isključen u konfiguraciji QREX-a.
+Local data persists until you delete it, uninstall QREX or the operating system removes application data. In **More → Settings** you may disable scan history and select **Delete all data** to remove local history, saved codes and preferences. Device or operating-system backups may contain copies depending on platform settings; the Android application backup is disabled in its manifest.
 
-## 4. Dopuštenja
+## Permissions
 
-QREX traži pristup kameri za funkciju skeniranja. Za fotografije koristi odabir kroz sustav gdje je dostupan. Ne treba pristup kontaktima, tvojoj lokaciji ili korisničkom računu kako bi izradio QR kod s podacima koje sam uneseš.
+QREX requests camera permission for live scanning. Image access uses the platform-provided picker where available; scanning does not require the contacts, location or account permissions.
 
-## 5. Kontakt
+## Contact
 
-Za upite o ovoj politici i obradi podataka koristi kontaktne mogućnosti na [brendigo.com](https://brendigo.com).
+For privacy-related requests, use the contact information at https://brendigo.com.
 
-## 6. Izmjene
+## Policy changes
 
-Ažuriranja pravila objavljuju se u ovom javnom repozitoriju i u novim verzijama aplikacije. Tekst unutar aplikacije dostupan je i bez interneta. Podatke i deklaracije za App Store Connect / Google Play Console prije konačne objave treba uskladiti s točnim ponašanjem svih isporučenih verzija i SDK-ova.
+Changes to this policy appear in the public repository and future app versions. An offline summary is available in the app. Store privacy declarations must be reevaluated for the exact binary and SDK versions submitted for review.

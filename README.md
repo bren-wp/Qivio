@@ -1,112 +1,138 @@
 <div align="center">
 
-<img src="assets/brand/qrex-logo.svg" alt="QREX — logotip" width="440">
+<img src="assets/brand/qrex-logo.svg" alt="QREX logo" width="430">
 
-### Skeniraj. Stvori. Dijeli.
+### Scan. Create. Share.
 
-**Jednostavna i brza QR aplikacija za Android i iOS.** Bez prijave, reklama i nepotrebnih koraka.
+**A fast, private QR scanner and creator for Android and iOS.** No account. No ads. No unnecessary steps.
 
 [![Mobile CI](https://github.com/bren-wp/Qivio/actions/workflows/mobile.yml/badge.svg)](https://github.com/bren-wp/Qivio/actions/workflows/mobile.yml)
-[![GitHub release](https://img.shields.io/github/v/release/bren-wp/Qivio?color=1677FF&label=Izdanje)](https://github.com/bren-wp/Qivio/releases)
-![Platforme](https://img.shields.io/badge/Android%20%2B%20iOS-Flutter-0EA5FF)
-![Bez prijave](https://img.shields.io/badge/Bez%20prijave-DA-12C7AA)
-![Licencija](https://img.shields.io/badge/Licencija-MIT-9954F6)
+[![Kotlin + Swift](https://github.com/bren-wp/Qivio/actions/workflows/native-platforms.yml/badge.svg)](https://github.com/bren-wp/Qivio/actions/workflows/native-platforms.yml)
+[![Latest release](https://img.shields.io/github/v/release/bren-wp/Qivio?label=Release&color=1677FF)](https://github.com/bren-wp/Qivio/releases/latest)
+![Languages](https://img.shields.io/badge/Languages-23-9047F8)
+![Privacy](https://img.shields.io/badge/Privacy-Offline--first-10C5FA)
+![License](https://img.shields.io/badge/License-MIT-6D73CE)
 
-<img src="assets/previews/qrex-hero.svg" alt="QREX brending — Skeniraj. Stvori. Dijeli." width="100%">
-
-**[⬇️ Preuzmi Android APK](https://github.com/bren-wp/Qivio/releases/latest)** · **[📱 Pogledaj dizajn](#dizajn-i-ekrani)** · **[💻 Kod i izgradnja](#razvoj-i-izgradnja)**
+**[Download Android](https://github.com/bren-wp/Qivio/releases/latest)** · **[Features](#everything-qr-without-the-clutter)** · **[Source code](#build-and-development)**
 
 </div>
 
-## Sve što QR može. Bez kompliciranja.
+## Everything QR. Without the clutter.
 
-QREX je mobilni skener i kreator QR kodova napravljen da *radi odmah*. Otvori aplikaciju, usmjeri kameru, pregledaj rezultat i odaberi radnju. Ne treba ti račun, pretplata ni internetska veza za skeniranje i izradu QR kodova.
+Scan a QR code, preview its contents, then choose exactly what happens next. Create your own QR codes, scan photos, copy or share results, and keep an optional local history. Internet access is not required for scanning or generating QR codes.
 
-<table><tr><td align="center" width="25%"><b>📷 SKENIRAJ</b><br><sub>Kamera i fotografije</sub></td><td align="center" width="25%"><b>✨ STVORI</b><br><sub>8 vrsta QR sadržaja</sub></td><td align="center" width="25%"><b>🕓 POVIJEST</b><br><sub>Pronađi i spremi</sub></td><td align="center" width="25%"><b>⚙️ VIŠE</b><br><sub>Postavke i privatnost</sub></td></tr></table>
+| Scan | Create | History | More |
+|:---:|:---:|:---:|:---:|
+| 📷 Camera & photos | ✨ QR code types | 🕘 Search & save | ⚙️ Preferences & privacy |
 
-## Dizajn i ekrani
+### Actual application screenshots
 
-<img src="assets/previews/qrex-showcase.svg" width="100%" alt="QREX dizajn šest ekrana: uvodni brending, skener, rezultat, kreator, povijest i postavke">
+The screenshots below are captured from **the running QREX application in an Android emulator and an iPhone simulator**, not generated marketing mockups. Their images are produced and validated by the [screenshot workflow](https://github.com/bren-wp/Qivio/actions/workflows/capture-screenshots.yml). If images are not present, the automated capture has not passed yet.
 
-*Dizajnerski prikazi izrađeni prema dostavljenom QREX vizualnom predlošku. To su ilustracije, a ne automatske snimke s fizičkih Android ili iOS uređaja; raspored se prilagođava veličini zaslona.*
+<table>
+<tr><th>Android · Create</th><th>iOS · Create</th></tr>
+<tr>
+<td align="center"><img src="docs/screenshots/android-create.png" alt="Actual QREX Android QR creation screen in English" width="290"></td>
+<td align="center"><img src="docs/screenshots/ios-create.png" alt="Actual QREX iOS QR creation screen in English" width="290"></td>
+</tr>
+</table>
 
-### Osmišljen za jedan dodir
+These are test-device captures, not claims of pixel-perfect parity with every reference design or physical device. The full visual QA and store submission are separate release gates.
 
-- **Pametno skeniranje:** kamera, fotografija iz galerije, svjetiljka i zumiranje gdje je podržano.
-- **Jasan rezultat:** puna adresa ili sadržaj prije radnje — bez automatskog otvaranja web poveznica.
-- **QR kreator:** URL, običan tekst, Wi-Fi, kontakt, e-mail, telefon, geolokacija ili kalendarski događaj.
-- **Sve na uređaju:** lokalna povijest, označavanje spremljenih kodova, pretraživanje i brisanje podataka.
-- **Brzo dijeljenje:** kopiraj sadržaj, podijeli rezultat ili pošalji sliku stvorenog QR koda.
-- **Dva izgleda:** premium tamni prikaz s električno plavim i ljubičastim akcentima ili svijetla tema.
+## What QREX can do
 
-## Ikonica i vizualni identitet
+- **Scan securely:** locally detect QR codes using the camera or an image selected from your gallery. Preview URL destinations before choosing to open them.
+- **Create QR codes:** URLs, text, Wi-Fi, email, phone, location, and contact information. The latest public Flutter release also supports event codes; feature parity in the Kotlin/Swift projects is still being completed.
+- **Save and find:** optional scan history, saved codes, local search, and the ability to erase your data.
+- **Share deliberately:** use system sharing and clipboard only when you tap an action.
+- **Personalize:** choose a light or dark interface and a preferred language.
+
+## 23 languages, English by default
+
+QREX is designed with **English as the primary language**. Open **More → Settings → Language** to switch without an account or internet connection.
+
+English · Croatian · German · French · Spanish · Italian · Portuguese · Dutch · Polish · Czech · Slovak · Slovenian · Hungarian · Romanian · Bulgarian · Greek · Turkish · Ukrainian · Russian · Swedish · Danish · Finnish · Norwegian Bokmål.
+
+The single [translation catalog](l10n/catalog.json) contains **67 complete message keys for each of 23 languages**. Android and iOS resource files are generated from it and verified in CI. Contributions to terminology and language quality are welcome; language coverage and device QA are distinct checks.
+
+## Branding
 
 <div align="center">
-<table><tr>
-<td align="center"><img src="assets/brand/qrex-icon.svg" width="128" alt="QREX ikonica"><br><b>QREX ikonica</b></td>
-<td align="center"><img src="assets/brand/qrex-logo.svg" width="310" alt="QREX horizontalni logotip"><br><b>QREX logotip</b></td>
-</tr></table>
+<table>
+<tr>
+<td align="center"><img src="assets/brand/qrex-icon.svg" alt="QREX app icon" width="125"><br><strong>App icon</strong></td>
+<td align="center"><img src="assets/brand/qrex-logo.svg" alt="QREX wordmark" width="310"><br><strong>Brand wordmark</strong></td>
+</tr>
+</table>
 </div>
 
-| Boja | HEX | Namjena |
-| --- | --- | --- |
-| Ponoćno plava | `#030C1B` | Pozadina |
-| Električno plava | `#1677FF` | Primarne akcije |
-| Cijan | `#10C5FA` | Skeniranje i naglasci |
-| Ljubičasta | `#9047F8` | Gradijenti i detalji |
-| Plava površina | `#101B2C` | Kartice i navigacija |
+| Color | Hex | Usage |
+|---|---|---|
+| Midnight navy | `#030C1B` | Background |
+| Electric blue | `#1677FF` | Primary action |
+| Cyan | `#10C5FA` | Scanner highlight |
+| Purple | `#9047F8` | Gradients |
+| Surface blue | `#101B2C` | Cards |
 
-## Privatnost dolazi prije svega
+## Privacy by design
 
-**[Pravila privatnosti](docs/PRIVACY.md)** dostupna su i unutar aplikacije, bez internetske veze. U izborniku **Više → O aplikaciji** prikazana je oznaka **Razvio Brendigo** s poveznicom na [brendigo.com](https://brendigo.com).
+**No sign-in. No ads. No analytics. No account backend.**
 
-**[Kontrolni popis za Google Play i App Store](docs/STORE_CHECKLIST.md)** prikazuje što je ugrađeno i koje obavezne korake još treba odraditi prije službene distribucije.
+QR detection and generation are performed on the device. Wi-Fi QR values are not added to scan history automatically. Manually saved Wi-Fi codes may contain passwords; the local settings storage is **not an encrypted password vault**. External links and system sharing may transfer data to external services only when the user chooses them.
 
+Read the [privacy policy](docs/PRIVACY.md) and the [store submission checklist](docs/STORE_CHECKLIST.md). The QREX Settings page includes a **Developed by Brendigo** attribution linking to [brendigo.com](https://brendigo.com).
 
-**Bez korisničkog računa · Bez analitičkog praćenja · Bez oglasa · Bez vlastitog backenda.**
+## Downloads and current release status
 
-Skeniranje i generiranje izvode se na uređaju. Povijest je lokalna, opcionalna i može se izbrisati u postavkama. Vanjske stranice, pozivi, e-mail, dijeljenje i navigacija mogu koristiti druge aplikacije ili internetsku vezu. QREX ne potvrđuje sigurnost vanjskih URL-ova — zato ih prikazuje prije otvaranja.
+The latest **published** release is **v0.1.3**, currently built from the earlier Flutter codebase. Its APK is available from [GitHub Releases](https://github.com/bren-wp/Qivio/releases/latest), along with a SHA-256 checksum. The newer Kotlin and Swift applications are being refined and tested; new translated builds should not be considered publicly released until a verified release exists.
 
-## Instalacija
+An App Store-installable iOS build requires Apple Developer signing and provisioning. A Play Store build needs a production upload signing key, metadata, privacy disclosures and device QA.
 
-### Android
-Otvori **[Releases](https://github.com/bren-wp/Qivio/releases/latest)** i preuzmi **QREX-Android-0.1.3.apk**. GitHub izdanje uključuje i SHA-256 kontrolni zbroj. APK je početna testna izgradnja, ne Google Play distribucija.
+## Build and development
 
-### iOS
-Za iOS se u GitHub Actions automatski gradi nepotpisana aplikacija. Instalacijski IPA i objava na App Storeu zahtijevaju Apple certifikat, provisioning profile i završne provjere.
+QREX contains two platform-focused applications:
 
-## Razvoj i izgradnja
+| Android | iOS |
+|---|---|
+| Kotlin + Jetpack Compose | Swift + SwiftUI |
+| CameraX + on-device ML Kit | AVFoundation + Vision |
+| ZXing QR creation | Core Image QR creation |
+| Android Studio / Gradle | Xcode / XcodeGen |
 
-Zajednički Flutter projekt koristi iste komponente i poslovnu logiku za Android i iOS.
+Android:
 
 ```bash
-flutter create --platforms=android,ios --org com.brendigo --project-name qrex .
-python3 tool/prepare_platforms.py
-flutter pub get
-flutter analyze
-flutter test
-flutter run
+cd platforms/android
+gradle :app:assembleDebug :app:testDebugUnitTest
 ```
 
-Za Android: `flutter build apk --release` ili `flutter build appbundle --release`; za iOS na macOS-u: `flutter build ios --release --no-codesign`. Platformski direktoriji generiraju se iz odgovarajućeg Flutter predloška pa se ne pohranjuju u ovom repozitoriju. Skripta `tool/prepare_platforms.py` dodaje potrebne dozvole, nazive aplikacije i ikonice.
+iOS (macOS):
 
-GitHub CI: **[Mobile CI](https://github.com/bren-wp/Qivio/actions/workflows/mobile.yml)**. Prvo izdanje objavljuje se tek kad Android i iOS provjere prođu.
+```bash
+cd platforms/ios
+xcodegen generate --spec project.yml
+xcodebuild -project QREX.xcodeproj -scheme QREX -configuration Release \
+  -sdk iphonesimulator -destination "generic/platform=iOS Simulator" \
+  CODE_SIGNING_ALLOWED=NO build
+```
 
-### Dokumentacija
+Regenerate or check all localized Android/iOS resources:
 
-- [📄 Bilješke izdanja](RELEASE_NOTES.md)
-- [🔐 Pravila privatnosti](docs/PRIVACY.md)
-- [✅ Google Play / App Store zahtjevi](docs/STORE_CHECKLIST.md)
-- [🎨 QREX logotip](assets/brand/qrex-logo.svg)
-- [📦 App ikonica](assets/brand/qrex-icon.svg)
-- [🖼️ Ekrani aplikacije](assets/previews/qrex-showcase.svg)
+```bash
+python3 tool/generate_localizations.py
+python3 tool/generate_localizations.py --check
+```
+
+The previous Flutter implementation remains in `lib/` until the standalone projects match its features and can migrate stored data safely.
+
+**Development documentation:** [Platform projects](platforms/README.md) · [Localization source](l10n/catalog.json) · [Privacy policy](docs/PRIVACY.md) · [Security audit](docs/audits/2026-10-09-qrex.md) · [Release notes](RELEASE_NOTES.md) · [CI](https://github.com/bren-wp/Qivio/actions)
 
 ---
 
 <div align="center">
 
-**QREX — Skeniraj. Stvori. Dijeli.**
+**QREX · Scan. Create. Share.**
 
-Izradio [Brendigo](https://brendigo.com) · [MIT licencija](LICENSE) · [Prijavi problem](https://github.com/bren-wp/Qivio/issues)
+Developed by [Brendigo](https://brendigo.com) · [MIT License](LICENSE) · [Report an issue](https://github.com/bren-wp/Qivio/issues)
 
 </div>
