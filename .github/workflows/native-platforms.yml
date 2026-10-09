@@ -27,9 +27,11 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - uses: android-actions/setup-android@v3
-      - name: Install Android 16 platform
-        run: sdkmanager --install "platforms;android-36" "build-tools;36.0.0"
+      - name: Verify Android SDK from hosted runner
+        run: |
+          test -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          test -d "$ANDROID_HOME/platforms/android-36" || "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-36"
+          test -d "$ANDROID_HOME/build-tools/36.0.0" || "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "build-tools;36.0.0"
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.13"

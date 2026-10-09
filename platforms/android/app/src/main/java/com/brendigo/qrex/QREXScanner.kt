@@ -26,9 +26,9 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.common.InputImage
-import androidx.camera.core.ExperimentalGetImage
 import java.util.concurrent.atomic.AtomicBoolean
 
+@OptIn(androidx.camera.core.ExperimentalGetImage::class)
 @Composable
 fun ScanScreen(onRead: (String) -> Unit) {
     val context = LocalContext.current
@@ -91,7 +91,6 @@ fun ScanScreen(onRead: (String) -> Unit) {
                             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                             .build()
                         analyzer.setAnalyzer(ContextCompat.getMainExecutor(context)) { frame ->
-                            @OptIn(ExperimentalGetImage::class)
                             fun process() {
                                 val media = frame.image
                                 if (media == null || handled.get()) { frame.close(); return }

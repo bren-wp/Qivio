@@ -196,7 +196,10 @@ struct CreateScreen: View {
                         Button("Spremi kod") { store.save(raw) }.buttonStyle(.bordered)
                         Button("Prikaži i podijeli") { showResult = true }.buttonStyle(.borderedProminent)
                     } else {
-                        ContentUnavailableView("Unesi valjan QR sadržaj", systemImage: "qrcode")
+                        VStack(spacing: 12) {
+                            Image(systemName: "qrcode").font(.system(size: 35))
+                            Text("Unesi valjan QR sadržaj")
+                        }.foregroundStyle(.secondary)
                     }
                 }.padding(20)
             }
@@ -246,7 +249,10 @@ struct HistoryScreen: View {
             .navigationTitle("Povijest")
             .overlay {
                 if filtered.isEmpty {
-                    ContentUnavailableView("Nema spremljenih kodova", systemImage: "clock")
+                    VStack(spacing: 10) {
+                        Image(systemName: "clock").font(.system(size: 34))
+                        Text("Nema spremljenih kodova")
+                    }.foregroundStyle(.secondary)
                 }
             }
             .toolbar {
