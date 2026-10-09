@@ -206,9 +206,9 @@ struct ScanScreen: View {
             // Limit oversized images to avoid avoidable memory pressure.
             guard data.count < 20_000_000,
                   let source = CGImageSourceCreateWithData(data as CFData, nil),
-                  let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
-                  let width = properties[kCGImagePropertyPixelWidth] as? Int,
-                  let height = properties[kCGImagePropertyPixelHeight] as? Int,
+                  let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any],
+                  let width = properties[kCGImagePropertyPixelWidth as String] as? Int,
+                  let height = properties[kCGImagePropertyPixelHeight as String] as? Int,
                   width > 0, height > 0,
                   Int64(width) * Int64(height) <= 24_000_000 else {
                 message = tr("image_failed"); return
