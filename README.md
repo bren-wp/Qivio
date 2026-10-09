@@ -58,6 +58,11 @@ QREX je mobilni skener i kreator QR kodova napravljen da *radi odmah*. Otvori ap
 
 ## Privatnost dolazi prije svega
 
+**[Pravila privatnosti](docs/PRIVACY.md)** dostupna su i unutar aplikacije, bez internetske veze. U izborniku **Više → O aplikaciji** prikazana je oznaka **Razvio Brendigo** s poveznicom na [brendigo.com](https://brendigo.com).
+
+**[Kontrolni popis za Google Play i App Store](docs/STORE_CHECKLIST.md)** prikazuje što je ugrađeno i koje obavezne korake još treba odraditi prije službene distribucije.
+
+
 **Bez korisničkog računa · Bez analitičkog praćenja · Bez oglasa · Bez vlastitog backenda.**
 
 Skeniranje i generiranje izvode se na uređaju. Povijest je lokalna, opcionalna i može se izbrisati u postavkama. Vanjske stranice, pozivi, e-mail, dijeljenje i navigacija mogu koristiti druge aplikacije ili internetsku vezu. QREX ne potvrđuje sigurnost vanjskih URL-ova — zato ih prikazuje prije otvaranja.
@@ -65,7 +70,7 @@ Skeniranje i generiranje izvode se na uređaju. Povijest je lokalna, opcionalna 
 ## Instalacija
 
 ### Android
-Otvori **[Releases](https://github.com/bren-wp/Qivio/releases/latest)** i preuzmi **QREX-Android-v0.1.1.apk**. GitHub izdanje uključuje i SHA-256 kontrolni zbroj. APK je početna testna izgradnja, ne Google Play distribucija.
+Otvori **[Releases](https://github.com/bren-wp/Qivio/releases/latest)** i preuzmi **QREX-Android-0.1.2.apk**. GitHub izdanje uključuje i SHA-256 kontrolni zbroj. APK je početna testna izgradnja, ne Google Play distribucija.
 
 ### iOS
 Za iOS se u GitHub Actions automatski gradi nepotpisana aplikacija. Instalacijski IPA i objava na App Storeu zahtijevaju Apple certifikat, provisioning profile i završne provjere.
@@ -83,13 +88,15 @@ flutter test
 flutter run
 ```
 
-Za Android: `flutter build apk --release`; za iOS na macOS-u: `flutter build ios --release --no-codesign`. Platformski direktoriji generiraju se iz odgovarajućeg Flutter predloška pa se ne pohranjuju u ovom repozitoriju. Skripta `tool/prepare_platforms.py` dodaje potrebne dozvole, nazive aplikacije i ikonice.
+Za Android: `flutter build apk --release` ili `flutter build appbundle --release`; za iOS na macOS-u: `flutter build ios --release --no-codesign`. Platformski direktoriji generiraju se iz odgovarajućeg Flutter predloška pa se ne pohranjuju u ovom repozitoriju. Skripta `tool/prepare_platforms.py` dodaje potrebne dozvole, nazive aplikacije i ikonice.
 
 GitHub CI: **[Mobile CI](https://github.com/bren-wp/Qivio/actions/workflows/mobile.yml)**. Prvo izdanje objavljuje se tek kad Android i iOS provjere prođu.
 
 ### Dokumentacija
 
 - [📄 Bilješke izdanja](RELEASE_NOTES.md)
+- [🔐 Pravila privatnosti](docs/PRIVACY.md)
+- [✅ Google Play / App Store zahtjevi](docs/STORE_CHECKLIST.md)
 - [🎨 QREX logotip](assets/brand/qrex-logo.svg)
 - [📦 App ikonica](assets/brand/qrex-icon.svg)
 - [🖼️ Ekrani aplikacije](assets/previews/qrex-showcase.svg)

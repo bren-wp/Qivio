@@ -17,7 +17,7 @@ jobs:
   android:
     name: Flutter check and Android APK
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -28,6 +28,8 @@ jobs:
         run: flutter create --platforms=android,ios --org com.brendigo --project-name qrex .
       - name: Apply QREX native branding and permissions
         run: python3 tool/prepare_platforms.py
+      - name: Verify Android store and privacy configuration
+        run: python3 tool/verify_platforms.py android
       - name: Resolve packages
         run: flutter pub get
       - name: Static analysis
@@ -38,10 +40,19 @@ jobs:
         run: flutter build apk --release
       - name: Confirm APK
         run: test -s build/app/outputs/flutter-apk/app-release.apk
+      - name: Build Android App Bundle
+        run: flutter build appbundle --release
+      - name: Confirm AAB
+        run: test -s build/app/outputs/bundle/release/app-release.aab
       - uses: actions/upload-artifact@v4
         with:
           name: QREX-Android-APK
           path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: QREX-Android-AAB-unsigned-for-store
+          path: build/app/outputs/bundle/release/app-release.aab
           if-no-files-found: error
 
   ios:
@@ -58,11 +69,18 @@ jobs:
         run: flutter create --platforms=android,ios --org com.brendigo --project-name qrex .
       - name: Apply QREX native branding and permissions
         run: python3 tool/prepare_platforms.py
+      - name: Verify iOS App Store privacy resources
+        run: python3 tool/verify_platforms.py ios
+      - name: Record Xcode version
+        run: xcodebuild -version
       - name: Resolve packages
         run: flutter pub get
       - name: Analyze code
         run: flutter analyze --fatal-infos
       - name: Build iOS without signing
         run: flutter build ios --release --no-codesign
-      - name: Check generated app
-        run: test -d build/ios/iphoneos/Runner.app
+      - name: Confirm iOS app and bundled privacy manifest
+        run: |
+          test -d build/ios/iphoneos/Runner.app
+          test -s build/ios/iphoneos/Runner.app/PrivacyInfo.xcprivacy
+          plutil -lint build/ios/iphoneos/Runner.app/PrivacyInfo.xcprivacy
