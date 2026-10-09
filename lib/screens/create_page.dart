@@ -219,7 +219,6 @@ class _CreatePageState extends State<CreatePage> {
               child: QrImageView(
                 data: payload, version: QrVersions.auto, size: 214,
                 backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
                 errorCorrectionLevel: QrErrorCorrectLevel.M,
               ),
             ),
