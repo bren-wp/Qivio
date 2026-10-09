@@ -9,6 +9,8 @@ from __future__ import annotations
 import json
 import pathlib
 import plistlib
+import re
+import uuid
 import struct
 import zlib
 from xml.etree import ElementTree as ET
@@ -106,7 +108,9 @@ def android() -> None:
     application.set(f"{{{ANDROID_NS}}}label", "QREX")
     # Keep user QR history outside automatic Android cloud backups.
     application.set(f"{{{ANDROID_NS}}}allowBackup", "false")
+    application.set(f"{{{ANDROID_NS}}}usesCleartextTraffic", "false")
     tree.write(manifest, encoding="utf-8", xml_declaration=True)
+    enforce_android_sdk()
     res = app / "res"
     for directory, size in (
         ("mipmap-mdpi", 48), ("mipmap-hdpi", 72), ("mipmap-xhdpi", 96),
@@ -125,6 +129,106 @@ def android() -> None:
         path.write_text(background, encoding="utf-8")
 
 
+def enforce_android_sdk() -> None:
+    """Google Play requires API 36 for phone updates from August 2026."""
+    kotlin = ROOT / "android/app/build.gradle.kts"
+    groovy = ROOT / "android/app/build.gradle"
+    path = kotlin if kotlin.is_file() else groovy
+    if not path.is_file():
+        raise SystemExit("No generated Android Gradle file.")
+    content = path.read_text(encoding="utf-8")
+    if path.suffix == ".kts":
+        patterns = (
+            (r"(?m)^([ \\t]*)compileSdk = (?:flutter\\.compileSdkVersion|[0-9]+)\\s*$",
+             r"\\g<1>compileSdk = 36"),
+            (r"(?m)^([ \\t]*)targetSdk = (?:flutter\\.targetSdkVersion|[0-9]+)\\s*$",
+             r"\\g<1>targetSdk = 36"),
+        )
+    else:
+        patterns = (
+            (r"(?m)^([ \\t]*)compileSdkVersion (?:flutter\\.compileSdkVersion|[0-9]+)\\s*$",
+             r"\\g<1>compileSdkVersion 36"),
+            (r"(?m)^([ \\t]*)targetSdkVersion (?:flutter\\.targetSdkVersion|[0-9]+)\\s*$",
+             r"\\g<1>targetSdkVersion 36"),
+        )
+    for pattern, replacement in patterns:
+        content, count = re.subn(pattern, replacement, content)
+        if count != 1:
+            raise SystemExit(f"Could not safely enforce API 36 in {path}: {pattern}")
+    path.write_text(content, encoding="utf-8")
+
+
+def add_ios_privacy_manifest() -> None:
+    """Add a valid app-owned privacy manifest to the generated Runner target.
+
+    Third-party plugin manifests remain the responsibility of their SDKs.
+    """
+    runner = ROOT / "ios/Runner"
+    manifest = runner / "PrivacyInfo.xcprivacy"
+    manifest.write_bytes(plistlib.dumps({
+        "NSPrivacyTracking": False,
+        "NSPrivacyTrackingDomains": [],
+        "NSPrivacyCollectedDataTypes": [],
+        "NSPrivacyAccessedAPITypes": [],
+    }, fmt=plistlib.FMT_XML))
+
+    project = ROOT / "ios/Runner.xcodeproj/project.pbxproj"
+    content = project.read_text(encoding="utf-8")
+    if "PrivacyInfo.xcprivacy in Resources" in content:
+        return
+    reference_id = uuid.uuid5(uuid.NAMESPACE_URL, "qrex:privacy:file").hex[:24].upper()
+    build_id = uuid.uuid5(uuid.NAMESPACE_URL, "qrex:privacy:build").hex[:24].upper()
+    reference = (
+        f"\\t\\t{reference_id} /* PrivacyInfo.xcprivacy */ = "
+        '{isa = PBXFileReference; lastKnownFileType = text.xml; '
+        'path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };\\n'
+    )
+    build = (
+        f"\\t\\t{build_id} /* PrivacyInfo.xcprivacy in Resources */ = "
+        f"{{isa = PBXBuildFile; fileRef = {reference_id} /* PrivacyInfo.xcprivacy */; }};\\n"
+    )
+
+    def add_to_section(name: str, item: str) -> None:
+        nonlocal content
+        marker = f"/* Begin {name} section */\\n"
+        if marker not in content:
+            raise SystemExit(f"iOS project missing section: {name}")
+        content = content.replace(marker, marker + item, 1)
+
+    add_to_section("PBXFileReference", reference)
+    add_to_section("PBXBuildFile", build)
+
+    # Only touch the Runner group and Runner resources phase; avoid Pods targets.
+    group = re.compile(
+        r"(?P<head>[0-9A-F]{24} /\\* Runner \\*/ = \\{\\s*"
+        r"isa = PBXGroup;\\s*children = \\(\\s*\\n)"
+    )
+    content, group_count = group.subn(
+        lambda m: m.group("head") +
+        f"\\t\\t\\t\\t{reference_id} /* PrivacyInfo.xcprivacy */,\\n",
+        content,
+        count=1,
+    )
+    if group_count != 1:
+        raise SystemExit("Cannot find Runner group to add PrivacyInfo.xcprivacy")
+    begin = "/* Begin PBXResourcesBuildPhase section */"
+    end = "/* End PBXResourcesBuildPhase section */"
+    if begin not in content or end not in content:
+        raise SystemExit("Cannot find iOS Runner resources build phase.")
+    prefix, tail = content.split(begin, 1)
+    resources, suffix = tail.split(end, 1)
+    resources, resources_count = re.subn(
+        r"(files = \\(\\s*\\n)",
+        lambda m: m.group(1) +
+        f"\\t\\t\\t\\t{build_id} /* PrivacyInfo.xcprivacy in Resources */,\\n",
+        resources,
+        count=1,
+    )
+    if resources_count != 1:
+        raise SystemExit("Unable to add privacy manifest to Runner resources.")
+    project.write_text(prefix + begin + resources + end + suffix, encoding="utf-8")
+
+
 def ios() -> None:
     runner = ROOT / "ios/Runner"
     plist = runner / "Info.plist"
@@ -137,6 +241,7 @@ def ios() -> None:
     data["NSPhotoLibraryUsageDescription"] = "Odaberi fotografiju za čitanje QR koda."
     with plist.open("wb") as handle:
         plistlib.dump(data, handle)
+    add_ios_privacy_manifest()
     icon_dir = runner / "Assets.xcassets/AppIcon.appiconset"
     icons = [
         ("iphone", "20x20", 2), ("iphone", "20x20", 3),
@@ -176,4 +281,4 @@ def ios() -> None:
 if __name__ == "__main__":
     android()
     ios()
-    print("QREX native camera permissions, app names, icons and splash generated.")
+    print("QREX native privacy/SDK policies, app names, icons and splash generated.")
