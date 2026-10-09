@@ -215,7 +215,7 @@ private fun ResultScreen(raw: String, store: QREXStore, onClose: () -> Unit) {
         Spacer(Modifier.height(12.dp))
         val bitmap = remember(raw) { generateQR(raw) }
         if (bitmap != null) {
-            Image(bitmap.asImageBitmap(), contentDescription = "QR kod",
+            Image(bitmap.asImageBitmap(), contentDescription = tr("qr_preview"),
                 modifier = Modifier.size(230.dp).background(white).padding(12.dp))
         }
         Spacer(Modifier.height(12.dp))
@@ -328,7 +328,7 @@ private fun CreateScreen(store: QREXStore, screenshotCreate: Boolean = false, on
                 Text(tr("qr_preview"), fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(16.dp))
                 val previewBitmap = qr
-                if (previewBitmap != null) Image(previewBitmap.asImageBitmap(), contentDescription = "QR kod",
+                if (previewBitmap != null) Image(previewBitmap.asImageBitmap(), contentDescription = tr("qr_preview"),
                     modifier = Modifier.size(238.dp).background(white).padding(14.dp))
                 else Text(tr("invalid_content"), color = Color.LightGray)
             }
@@ -365,7 +365,7 @@ private fun HistoryScreen(store: QREXStore, onOpen: (String) -> Unit) {
                             }
                         }
                         IconButton(onClick = { store.remove(item) }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Izbriši", tint = Color.LightGray)
+                            Icon(Icons.Default.Delete, contentDescription = tr("delete"), tint = Color.LightGray)
                         }
                     }
                 }
@@ -421,7 +421,7 @@ private fun MoreScreen(store: QREXStore) {
         }) { Text(tr("developed_by")) }
     }
     if (showDelete) AlertDialog(onDismissRequest = { showDelete = false },
-        title = { Text("Izbriši sve podatke?") },
+        title = { Text(tr("confirm_delete")) },
         text = { Text(tr("delete_warning")) },
         confirmButton = { TextButton(onClick = { store.clearAll(); showDelete = false }) { Text(tr("delete_all")) } },
         dismissButton = { TextButton(onClick = { showDelete = false }) { Text(tr("cancel")) } })

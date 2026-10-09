@@ -36,7 +36,9 @@ jobs:
       - name: Check production UI labels
         run: python3 tool/check_public_ui.py
       - name: Verify 23-language translation coverage
-        run: python3 tool/generate_localizations.py --check
+        run: |
+          python3 tool/generate_localizations.py --check
+          python3 tool/check_translation_usage.py
       - name: Compile Kotlin app and execute unit tests
         working-directory: platforms/android
         run: gradle --no-daemon --stacktrace :app:assembleDebug :app:testDebugUnitTest
@@ -71,7 +73,9 @@ jobs:
           }), encoding="utf-8")
           PY
       - name: Verify localization resource parity
-        run: python3 tool/generate_localizations.py --check
+        run: |
+          python3 tool/generate_localizations.py --check
+          python3 tool/check_translation_usage.py
       - name: Generate Xcode project
         working-directory: platforms/ios
         run: xcodegen generate --spec project.yml
