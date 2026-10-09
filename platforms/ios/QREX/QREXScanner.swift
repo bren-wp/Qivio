@@ -110,7 +110,7 @@ struct ScanScreen: View {
             VStack(spacing: 20) {
                 Text("QREX").font(.system(size: 30, weight: .black, design: .rounded))
                     .foregroundStyle(QREXColors.cyan)
-                Text("Skeniraj QR kod").font(.title2.bold()).foregroundStyle(.white)
+                Text(tr("scan_qr")).font(.title2.bold()).foregroundStyle(.white)
                 ZStack {
                     if access == .authorized {
                         CameraScanner(onRead: receive, torchOn: $torch)
@@ -121,9 +121,9 @@ struct ScanScreen: View {
                             .fill(QREXColors.card)
                         VStack(spacing: 12) {
                             Image(systemName: "camera.fill").font(.system(size: 36))
-                            Text("Dopusti pristup kameri za skeniranje.")
+                            Text(tr("allow_camera"))
                                 .multilineTextAlignment(.center)
-                            Button("Omogući kameru") { requestCamera() }
+                            Button(tr("enable_camera")) { requestCamera() }
                                 .buttonStyle(.borderedProminent)
                         }.foregroundStyle(.white).padding()
                     }
@@ -137,13 +137,13 @@ struct ScanScreen: View {
                     Button {
                         torch.toggle()
                     } label: {
-                        Label("Svjetiljka", systemImage: torch ? "flashlight.on.fill" : "flashlight.off.fill")
+                        Label(tr("flashlight"), systemImage: torch ? "flashlight.on.fill" : "flashlight.off.fill")
                     }.buttonStyle(.bordered).disabled(access != .authorized)
                     PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                        Label("Iz galerije", systemImage: "photo")
+                        Label(tr("from_gallery"), systemImage: "photo")
                     }.buttonStyle(.bordered)
                 }.tint(QREXColors.cyan)
-                Text("Usmjeri kameru prema QR kodu")
+                Text(tr("point_camera"))
                     .font(.footnote).foregroundStyle(.gray)
             }.padding(.vertical, 18)
         }
@@ -164,7 +164,7 @@ struct ScanScreen: View {
             get: { message != nil },
             set: { if !$0 { message = nil } }
         )) {
-            Button("U redu", role: .cancel) { message = nil }
+            Button(tr("ok"), role: .cancel) { message = nil }
         } message: { Text(message ?? "") }
     }
 
@@ -190,11 +190,11 @@ struct ScanScreen: View {
         guard let item else { return }
         do {
             guard let data = try await item.loadTransferable(type: Data.self) else {
-                message = "Fotografiju nije moguće otvoriti."; return
+                message = tr("image_failed"); return
             }
             // Limit oversized images to avoid avoidable memory pressure.
             guard data.count < 20_000_000 else {
-                message = "Fotografija je prevelika."; return
+                message = tr("image_failed"); return
             }
             let request = VNDetectBarcodesRequest()
             request.symbologies = [.qr]
@@ -204,10 +204,10 @@ struct ScanScreen: View {
             if let raw = request.results?.compactMap(\.payloadStringValue).first {
                 receive(raw)
             } else {
-                message = "Na fotografiji nije pronađen QR kod."
+                message = tr("qr_not_found")
             }
         } catch {
-            message = "Čitanje fotografije nije uspjelo."
+            message = tr("image_failed")
         }
         selectedPhoto = nil
     }

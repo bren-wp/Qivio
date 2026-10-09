@@ -82,10 +82,14 @@ final class QREXStore: ObservableObject {
     @Published var lightMode: Bool {
         didSet { UserDefaults.standard.set(lightMode, forKey: "qrex.light") }
     }
+    @Published var language: String {
+        didSet { UserDefaults.standard.set(language, forKey: "qrex.language") }
+    }
 
     init(defaults: UserDefaults = .standard) {
         historyEnabled = defaults.object(forKey: "qrex.history.enabled") as? Bool ?? true
         lightMode = defaults.bool(forKey: "qrex.light")
+        language = defaults.string(forKey: "qrex.language") ?? "en"
         if let data = defaults.data(forKey: "qrex.history"),
            let loaded = try? JSONDecoder().decode([QRHistoryItem].self, from: data) {
             var unique: Set<String> = []
@@ -131,6 +135,7 @@ final class QREXStore: ObservableObject {
         UserDefaults.standard.removeObject(forKey: "qrex.history")
         historyEnabled = true
         lightMode = false
+        language = "en"
     }
 
     private func persist() {
