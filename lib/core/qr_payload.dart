@@ -17,26 +17,29 @@ extension QrKindLabel on QrKind {
 
 QrKind detectKind(String raw) {
   final s = raw.trim();
+  final upper = s.toUpperCase();
   final lower = s.toLowerCase();
   if (lower.startsWith('http://') || lower.startsWith('https://')) return QrKind.link;
-  if (s.toUpperCase().startsWith('WIFI:')) return QrKind.wifi;
-  if (s.toUpperCase().startsWith('BEGIN:VCARD') ||
-      s.toUpperCase().startsWith('MECARD:')) {
-    return QrKind.contact;
-  }
+  if (upper.startsWith('WIFI:')) return QrKind.wifi;
+  if (upper.startsWith('BEGIN:VCARD') || upper.startsWith('MECARD:')) return QrKind.contact;
   if (lower.startsWith('mailto:') || RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(s)) {
     return QrKind.email;
   }
   if (lower.startsWith('tel:')) return QrKind.phone;
   if (lower.startsWith('geo:')) return QrKind.location;
-  if (s.toUpperCase().contains('BEGIN:VEVENT')) return QrKind.event;
+  if (upper.contains('BEGIN:VEVENT')) return QrKind.event;
   return QrKind.text;
 }
 
+/// Permit only explicit http/https addresses, never userinfo, scripts or file URIs.
 Uri? safeActionUri(String raw) {
-  final uri = Uri.tryParse(raw.trim());
-  if (uri == null || uri.host.isEmpty) return null;
-  if (uri.scheme == 'https' || uri.scheme == 'http') return uri;
+  final source = raw.trim();
+  if (RegExp(r'[\x00-\x1F\x7F]').hasMatch(source)) return null;
+  final uri = Uri.tryParse(source);
+  if (uri == null || !uri.hasAuthority || uri.host.isEmpty || uri.userInfo.isNotEmpty) {
+    return null;
+  }
+  if (uri.scheme.toLowerCase() == 'https' || uri.scheme.toLowerCase() == 'http') return uri;
   return null;
 }
 
@@ -45,28 +48,49 @@ Uri? actionForPayload(String raw) {
   if (type == QrKind.link) return safeActionUri(raw);
   if (type == QrKind.email) {
     final value = raw.trim();
-    return Uri.tryParse(value.startsWith('mailto:') ? value : 'mailto:$value');
+    final target = value.toLowerCase().startsWith('mailto:') ? value : 'mailto:$value';
+    return Uri.tryParse(target);
   }
-  if (type == QrKind.phone) return Uri.tryParse(raw.trim());
+  if (type == QrKind.phone) {
+    final number = raw.trim().substring(4);
+    if (!RegExp(r'^\+?[0-9 ()\-.#*]{1,40}$').hasMatch(number)) return null;
+    return Uri(scheme: 'tel', path: number);
+  }
   if (type == QrKind.location) {
     final coordinates = raw.trim().substring(4).split(';').first;
+    if (!validCoordinates(coordinates)) return null;
     return Uri.https('www.google.com', '/maps/search/', {'api': '1', 'query': coordinates});
   }
   return null;
+}
+
+bool validCoordinates(String value) {
+  final parts = value.split(',');
+  if (parts.length != 2) return false;
+  final latitude = double.tryParse(parts[0].trim());
+  final longitude = double.tryParse(parts[1].trim());
+  return latitude != null && longitude != null &&
+      latitude.isFinite && longitude.isFinite &&
+      latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180;
 }
 
 String qrWifi({required String ssid, required String password, bool hidden = false, String security = 'WPA'}) {
   String escape(String input) => input.replaceAll('\\', '\\\\')
       .replaceAll(';', '\\;').replaceAll(':', '\\:')
       .replaceAll(',', '\\,').replaceAll('"', '\\"');
-  return 'WIFI:T:${password.isEmpty ? 'nopass' : security};S:${escape(ssid)};'
-      'P:${escape(password)};H:${hidden ? 'true' : 'false'};;';
+  final mode = password.isEmpty ? 'nopass' : security;
+  return 'WIFI:T:$mode;S:${escape(ssid)};P:${escape(password)};H:${hidden ? 'true' : 'false'};;';
 }
 
+String _escapeVcard(String text) => text.trim()
+    .replaceAll('\\', '\\\\')
+    .replaceAll(RegExp(r'[\r\n]+'), ' ')
+    .replaceAll(';', '\\;')
+    .replaceAll(',', '\\,');
+
 String qrContact({required String name, required String phone, required String email}) {
-  String cleaned(String text) => text.replaceAll(RegExp(r'[\r\n]'), ' ').trim();
-  return 'BEGIN:VCARD\nVERSION:3.0\nFN:${cleaned(name)}\n'
-      'TEL:${cleaned(phone)}\nEMAIL:${cleaned(email)}\nEND:VCARD';
+  return 'BEGIN:VCARD\nVERSION:3.0\nFN:${_escapeVcard(name)}\n'
+      'TEL:${_escapeVcard(phone)}\nEMAIL:${_escapeVcard(email)}\nEND:VCARD';
 }
 
 String qrEmail(String address) => 'mailto:${address.trim()}';
@@ -76,10 +100,23 @@ String qrLocation(String coordinates) => 'geo:${coordinates.trim()}';
 String qrEvent({required String title, required DateTime start, required DateTime end}) {
   String stamp(DateTime dt) =>
       '${dt.toUtc().toIso8601String().replaceAll('-', '').replaceAll(':', '').split('.').first}Z';
-  final safeTitle = title.replaceAll(RegExp(r'[\r\n]'), ' ').trim();
+  final safeTitle = _escapeVcard(title);
   return 'BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\n'
       'SUMMARY:$safeTitle\nDTSTART:${stamp(start)}\nDTEND:${stamp(end)}\n'
       'END:VEVENT\nEND:VCALENDAR';
+}
+
+/// The QR spec's error correction capacity depends on version and encoding.
+/// This conservative byte limit avoids large or malformed render attempts.
+bool fitsQrPayload(String raw) => raw.isNotEmpty && utf8.encode(raw).length <= 1600;
+
+String? wifiField(String raw, String field) {
+  if (detectKind(raw) != QrKind.wifi) return null;
+  final match = RegExp('(?:^|;)$field:((?:\\\\.|[^;])*)').firstMatch(raw);
+  if (match == null) return null;
+  return match.group(1)!
+      .replaceAll(r'\;', ';').replaceAll(r'\:', ':')
+      .replaceAll(r'\,', ',').replaceAll(r'\\', '\\');
 }
 
 class ScanEntry {
@@ -91,21 +128,22 @@ class ScanEntry {
   QrKind get kind => detectKind(raw);
   String get title {
     if (kind == QrKind.link) return Uri.tryParse(raw)?.host ?? raw;
-    if (kind == QrKind.wifi) {
-      final match = RegExp(r'(?:^|;)S:((?:\\.|[^;])*)').firstMatch(raw);
-      return match?.group(1)?.replaceAll(r'\;', ';') ?? 'Wi-Fi mreža';
+    if (kind == QrKind.wifi) return wifiField(raw, 'S') ?? 'Wi-Fi mreža';
+    if (kind == QrKind.contact) {
+      final value = RegExp(r'(?:^|\n)FN:([^\n]*)').firstMatch(raw)?.group(1);
+      if (value != null && value.isNotEmpty) return value;
     }
-    return raw.replaceAll('\n', ' ').length > 45
-        ? '${raw.replaceAll('\n', ' ').substring(0, 45)}…'
-        : raw.replaceAll('\n', ' ');
+    final cleaned = raw.replaceAll(RegExp(r'[\r\n]+'), ' ');
+    return cleaned.length > 45 ? '${cleaned.substring(0, 45)}…' : cleaned;
   }
 
   Map<String, dynamic> toJson() => {'raw': raw, 'date': date.toIso8601String(), 'saved': saved};
+
   static ScanEntry? fromJson(dynamic data) {
     if (data is! Map) return null;
     final raw = data['raw'];
     final date = DateTime.tryParse(data['date']?.toString() ?? '');
-    if (raw is! String || raw.isEmpty || date == null) return null;
+    if (raw is! String || raw.isEmpty || date == null || raw.length > 10000) return null;
     return ScanEntry(raw: raw, date: date, saved: data['saved'] == true);
   }
 }
@@ -114,10 +152,13 @@ List<ScanEntry> decodeEntries(String source) {
   try {
     final decoded = jsonDecode(source);
     if (decoded is! List) return [];
-    return decoded.map(ScanEntry.fromJson).whereType<ScanEntry>().take(250).toList();
+    final unique = <String>{};
+    return decoded.map(ScanEntry.fromJson).whereType<ScanEntry>()
+        .where((e) => unique.add(e.raw)).take(250).toList();
   } catch (_) {
     return [];
   }
 }
 
-String encodeEntries(List<ScanEntry> entries) => jsonEncode(entries.map((e) => e.toJson()).toList());
+String encodeEntries(List<ScanEntry> entries) =>
+    jsonEncode(entries.map((e) => e.toJson()).toList());

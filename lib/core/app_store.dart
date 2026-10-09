@@ -10,10 +10,13 @@ class AppStore extends ChangeNotifier {
   bool _light = false;
   bool _historyEnabled = true;
 
+  static const maxHistory = 250;
+  static const _historyKey = 'qrex_history_v1';
+
   static Future<AppStore> load() async {
     final prefs = await SharedPreferences.getInstance();
     final store = AppStore._(prefs);
-    store._entries.addAll(decodeEntries(prefs.getString('qrex_history_v1') ?? '[]'));
+    store._entries.addAll(decodeEntries(prefs.getString(_historyKey) ?? '[]'));
     store._light = prefs.getBool('qrex_light_v1') ?? false;
     store._historyEnabled = prefs.getBool('qrex_record_v1') ?? true;
     return store;
@@ -22,13 +25,17 @@ class AppStore extends ChangeNotifier {
   List<ScanEntry> get entries => List.unmodifiable(_entries);
   bool get light => _light;
   bool get historyEnabled => _historyEnabled;
+  bool isSaved(String raw) => _entries.any((e) => e.raw == raw && e.saved);
 
+  /// Scanning never silently saves Wi-Fi credentials to ordinary preferences.
+  /// The user may explicitly save a Wi-Fi QR code using [save].
   Future<void> record(String raw) async {
     final data = raw.trim();
-    if (!_historyEnabled || data.isEmpty) return;
-    _entries.removeWhere((e) => e.raw == data && !e.saved);
-    _entries.insert(0, ScanEntry(raw: data, date: DateTime.now(), saved: false));
-    if (_entries.length > 250) _entries.removeRange(250, _entries.length);
+    if (!_historyEnabled || data.isEmpty || detectKind(data) == QrKind.wifi) return;
+    final saved = isSaved(data);
+    _entries.removeWhere((e) => e.raw == data);
+    _entries.insert(0, ScanEntry(raw: data, date: DateTime.now(), saved: saved));
+    _trim();
     notifyListeners();
     await _persist();
   }
@@ -38,14 +45,22 @@ class AppStore extends ChangeNotifier {
     if (data.isEmpty) return;
     _entries.removeWhere((e) => e.raw == data);
     _entries.insert(0, ScanEntry(raw: data, date: DateTime.now(), saved: true));
+    _trim();
     notifyListeners();
     await _persist();
   }
 
-  bool isSaved(String raw) => _entries.any((e) => e.raw == raw && e.saved);
+  void _trim() {
+    while (_entries.length > maxHistory) {
+      final i = _entries.lastIndexWhere((e) => !e.saved);
+      _entries.removeAt(i >= 0 ? i : _entries.length - 1);
+    }
+  }
 
   Future<void> remove(ScanEntry item) async {
+    final oldLength = _entries.length;
     _entries.removeWhere((e) => e.raw == item.raw && e.date == item.date);
+    if (oldLength == _entries.length) return;
     notifyListeners();
     await _persist();
   }
@@ -74,5 +89,6 @@ class AppStore extends ChangeNotifier {
     await _prefs.setBool('qrex_record_v1', value);
   }
 
-  Future<void> _persist() async => _prefs.setString('qrex_history_v1', encodeEntries(_entries));
+  Future<void> _persist() async =>
+      _prefs.setString(_historyKey, encodeEntries(_entries));
 }
