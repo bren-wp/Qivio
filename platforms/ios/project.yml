@@ -1,0 +1,43 @@
+name: QREX
+options:
+  bundleIdPrefix: com.brendigo
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "26.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    CODE_SIGNING_ALLOWED: "NO"
+targets:
+  QREX:
+    type: application
+    platform: iOS
+    sources:
+      - path: QREX
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.brendigo.qrex
+        PRODUCT_NAME: QREX
+        INFOPLIST_KEY_CFBundleDisplayName: QREX
+        INFOPLIST_KEY_NSCameraUsageDescription: "Kamera služi samo za skeniranje QR kodova."
+        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Odaberi fotografiju za čitanje QR koda."
+        INFOPLIST_KEY_UIApplicationSupportsDocumentBrowser: "NO"
+        GENERATE_INFOPLIST_FILE: "YES"
+        SWIFT_EMIT_LOC_STRINGS: "YES"
+  QREXTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: QREXTests
+    dependencies:
+      - target: QREX
+schemes:
+  QREX:
+    build:
+      targets:
+        QREX: all
+    test:
+      targets:
+        - QREXTests
