@@ -54,6 +54,9 @@ jobs:
             # /sdcard from the shell in some managed emulator configurations.
             adb exec-out screencap -p > docs/screenshots/android-create.png
             python3 tool/verify_screenshots.py docs/screenshots/android-create.png
+            # Exercise the Keystore on a real Android runtime, not the JVM test runner.
+            cd platforms/android
+            gradle --no-daemon :app:connectedDebugAndroidTest
       - uses: actions/upload-artifact@v4
         with:
           name: qrex-actual-android
