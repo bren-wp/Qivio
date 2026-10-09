@@ -237,7 +237,9 @@ class _CreatePageState extends State<CreatePage> {
             _showAdvanced = !_showAdvanced;
             if (!_showAdvanced && !<QrKind>[
               QrKind.link, QrKind.text, QrKind.wifi, QrKind.contact,
-            ].contains(_kind)) _kind = QrKind.link;
+            ].contains(_kind)) {
+              _kind = QrKind.link;
+            }
           }),
         ),
       ]),
