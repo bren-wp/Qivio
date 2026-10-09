@@ -131,7 +131,7 @@ final class QREXStore: ObservableObject {
               let rows = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]]
         else { return }
         let formatter = ISO8601DateFormatter()
-        var known = Set(items.map(\\.raw))
+        var known = Set(items.map(\.raw))
         var merged = items
         for row in rows.prefix(250) {
             guard let raw = row["raw"] as? String, !raw.isEmpty, raw.count <= 10000,
