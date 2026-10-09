@@ -127,12 +127,12 @@ class QREXStore(context: Context) {
         lightMode = false
     }
 
-    fun setHistoryEnabled(value: Boolean) {
+    fun updateHistoryEnabled(value: Boolean) {
         historyEnabled = value
         preferences.edit().putBoolean("historyEnabled", value).apply()
     }
 
-    fun setLightMode(value: Boolean) {
+    fun updateLightMode(value: Boolean) {
         lightMode = value
         preferences.edit().putBoolean("lightMode", value).apply()
     }

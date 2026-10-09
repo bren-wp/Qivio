@@ -1,8 +1,6 @@
 name: Kotlin and Swift Platforms
 
 on:
-  push:
-    branches: [feature/platform-apps]
   pull_request:
     paths:
       - "platforms/**"
@@ -35,6 +33,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.13"
+      - name: Check production UI labels
+        run: python3 tool/check_public_ui.py
       - name: Compile Kotlin app and execute unit tests
         working-directory: platforms/android
         run: gradle --no-daemon --stacktrace :app:assembleDebug :app:testDebugUnitTest

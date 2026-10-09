@@ -362,11 +362,11 @@ private fun MoreScreen(store: QREXStore) {
         Text("Postavke", color = MaterialTheme.colorScheme.onBackground, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("Spremanje povijesti", Modifier.weight(1f))
-            Switch(checked = store.historyEnabled, onCheckedChange = store::setHistoryEnabled)
+            Switch(checked = store.historyEnabled, onCheckedChange = store::updateHistoryEnabled)
         }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("Svijetli izgled", Modifier.weight(1f))
-            Switch(checked = store.lightMode, onCheckedChange = store::setLightMode)
+            Switch(checked = store.lightMode, onCheckedChange = store::updateLightMode)
         }
         OutlinedButton(onClick = { showDelete = true }) { Text("Izbriši sve podatke") }
         Spacer(Modifier.height(20.dp))
