@@ -1,0 +1,68 @@
+name: Publish first release
+
+on:
+  workflow_run:
+    workflows: ["Mobile CI"]
+    types: [completed]
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: qrex-first-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish QREX v0.1.0 after verified builds
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.head_branch == 'main' &&
+          github.event.workflow_run.event == 'push' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CI_SHA: ${{ github.event.workflow_run.head_sha }}
+      CI_RUN: ${{ github.event.workflow_run.id }}
+      TAG: v0.1.0
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require successful checks on current main
+        id: gate
+        run: |
+          set -euo pipefail
+          CURRENT="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
+          if [ "$CURRENT" != "$CI_SHA" ]; then
+            echo "Not latest main ($CI_SHA versus $CURRENT); skipping."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG exists; no duplicate created."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+      - name: Download verified Android artifact
+        if: steps.gate.outputs.publish == 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          gh run download "$CI_RUN" --repo "$GITHUB_REPOSITORY" --name QREX-Android-APK --dir dist
+          test -s dist/app-release.apk
+          mv dist/app-release.apk "dist/QREX-Android-v0.1.0.apk"
+          cd dist
+          sha256sum QREX-Android-v0.1.0.apk > SHA256SUMS.txt
+      - name: Create official v0.1.0 GitHub release and attach APK
+        if: steps.gate.outputs.publish == 'true'
+        run: |
+          set -euo pipefail
+          gh release create "$TAG" dist/QREX-Android-v0.1.0.apk dist/SHA256SUMS.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$CI_SHA" \
+            --title "QREX v0.1.0 — Prvo izdanje" \
+            --notes-file RELEASE_NOTES.md \
+            --latest
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json tagName,assets,url
