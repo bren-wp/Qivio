@@ -305,7 +305,8 @@ private fun CreateScreen(store: QREXStore, onResult: (String) -> Unit) {
             Column(Modifier.padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("Pregled koda", fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(16.dp))
-                if (qr != null) Image(qr.asImageBitmap(), contentDescription = "QR kod",
+                val previewBitmap = qr
+                if (previewBitmap != null) Image(previewBitmap.asImageBitmap(), contentDescription = "QR kod",
                     modifier = Modifier.size(238.dp).background(white).padding(14.dp))
                 else Text("Unesi valjane podatke za QR kod.", color = Color.LightGray)
             }
