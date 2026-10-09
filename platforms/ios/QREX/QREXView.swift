@@ -162,9 +162,9 @@ struct CreateScreen: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
-                    Text(tr("create_qr")).font(.largeTitle.bold())
-                    Text(tr("enter_details")).foregroundStyle(.secondary)
+                VStack(spacing: 13) {
+                    Text(tr("create_qr")).font(.system(size: 27, weight: .bold))
+                    Text(tr("enter_details")).font(.subheadline).foregroundStyle(.secondary)
                     Picker(tr("create"), selection: $kind) {
                         ForEach(0..<(showMore ? choices.count : 3), id: \.self) { i in
                             Text(choices[i]).tag(i)
@@ -196,8 +196,8 @@ struct CreateScreen: View {
                     }
                     if let image = QREXImage.qr(raw) {
                         Image(uiImage: image).interpolation(.none).resizable()
-                            .scaledToFit().frame(width: 238, height: 238)
-                            .padding(16).background(.white, in: RoundedRectangle(cornerRadius: 20))
+                            .scaledToFit().frame(width: 210, height: 210)
+                            .padding(12).background(.white, in: RoundedRectangle(cornerRadius: 20))
                         Button(tr("save_qr")) { store.save(raw) }.buttonStyle(.bordered)
                         Button(tr("create_share")) { showResult = true }.buttonStyle(.borderedProminent)
                     } else {
@@ -206,10 +206,10 @@ struct CreateScreen: View {
                             Text(tr("invalid_content"))
                         }.foregroundStyle(.secondary)
                     }
-                }.padding(20)
+                }.padding(.horizontal, 20).padding(.top, 8).padding(.bottom, 95)
             }
             .background(QREXColors.background)
-            .navigationTitle(tr("create"))
+            .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showResult) { ResultScreen(raw: raw) }
         }
     }
