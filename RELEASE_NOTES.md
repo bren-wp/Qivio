@@ -1,19 +1,20 @@
-# QREX v0.1.1 — Pouzdanije skeniranje i profinjeniji UX
+# QREX v0.1.2 — Privatnost, stabilnost i platforme
 
-QREX ostaje jednostavna QR aplikacija za Android i iOS, bez prijave i bez oglasa.
+Nastavak razvoja QREX QR skenera i kreatora za Android i iOS.
 
-### Poboljšanja
-- Stabilnije skeniranje: uklonjene utrke između galerije i kamere, pouzdanije zaustavljanje i nastavak skenera, prilagodljiv okvir skeniranja.
-- Sigurnija povijest: skeniranje ne sprema Wi-Fi lozinke automatski; već spremljeni kodovi ne dupliciraju se ponovnim skeniranjem.
-- Wi-Fi privatnost: lozinka je zadano skrivena u rezultatima, a prije ručnog spremanja prikazuje se upozorenje.
-- Rezultati: prikaz skeniranog QR koda, poboljšano dijeljenje na iPadu i dodatne provjere otvaranja vanjskih poveznica.
-- Kreator: pregledniji odabir vrsta QR kodova, kontrola vidljivosti Wi-Fi lozinke, validacija GPS koordinata i ograničenje veličine podataka.
-- Podržan veći raspon veličina zaslona. Dodani regresijski testovi sadržaja, spremanja i UI ekrana.
-- Android automatsko sigurnosno kopiranje podataka aplikacije isključeno.
+### Novi sadržaj
+- U **Više → O aplikaciji** dodano **„Razvio Brendigo”** s poveznicom na brendigo.com.
+- U postavke dodana lako dostupna pravila privatnosti koja se čitaju offline i njihova javna verzija.
+- Postavljen recovery zaslon za pogreške inicijalizacije lokalne pohrane, s mogućnošću ponovnog pokušaja.
+- Android koristi API 36 i isključuje automatski backup te nešifrirani mrežni promet same aplikacije.
+- iOS projekt uključuje privacy manifest aplikacije i opise korištenja kamere/fotografija.
+- CI dodatno provjerava platformsku konfiguraciju; izrađuje Android APK i AAB, iOS bez potpisivanja.
 
-### Datoteke i instalacija
-- **QREX-Android-v0.1.1.apk** — probni Android APK iz uspješnog GitHub Actions builda (nije potpisan za objavu na Google Playu).
-- **SHA256SUMS.txt** — SHA-256 kontrolni zbroj.
-- iOS: produkcijska kompilacija bez potpisivanja; za iPhone distribuciju potrebni su Apple certifikat i provisioning.
+### Sigurnost i objava
+- Nema korisničkog računa, integrirane analitike ni reklamnog sustava.
+- QR kodovi obrađuju se lokalno; vanjske poveznice otvaraju se samo korisničkim izborom.
+- Instalacijski Android APK na GitHubu je testna release izgradnja, nije potpisan produkcijskim Play upload ključem.
+- iOS kompilacija ne isporučuje instalacijski IPA bez Appleovog potpisivanja.
 
-**Napomena:** Automatski testovi i kompilacija ne potvrđuju 1:1 podudarnost sa slikovnim predloškom niti ponašanje na svim fizičkim uređajima; završno testiranje ostaje obavezno.
+### Status
+Automatska analiza i izgradnje nisu dokaz potpune 1:1 podudarnosti sa slikovnim predloškom, odsutnosti rušenja na svim uređajima ni konačnog prihvaćanja u trgovinama. Prije službene objave izvršiti [checklistu](docs/STORE_CHECKLIST.md) i testirati stvarne telefone.
