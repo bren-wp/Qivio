@@ -109,8 +109,10 @@ class _ScannerPageState extends State<ScannerPage> with WidgetsBindingObserver {
       await _camera.setZoomScale(zoom);
       if (mounted) setState(() => _zoom = zoom);
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Zumiranje nije dostupno na ovom uređaju.')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Zumiranje nije dostupno na ovom uređaju.')));
+      }
     }
   }
 

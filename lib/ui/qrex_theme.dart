@@ -112,8 +112,10 @@ class QrexButton extends StatelessWidget {
         Flexible(child: Text(label, textAlign: TextAlign.center,
           style: const TextStyle(fontWeight: FontWeight.w700))),
       ]));
-    if (secondary) return SizedBox(width: double.infinity,
-      child: OutlinedButton(onPressed: onPressed, child: content));
+    if (secondary) {
+      return SizedBox(width: double.infinity,
+        child: OutlinedButton(onPressed: onPressed, child: content));
+    }
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: onPressed == null ? null : QrexPalette.bluePurple,
