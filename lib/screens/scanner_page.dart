@@ -108,9 +108,11 @@ class _ScannerPageState extends State<ScannerPage> with WidgetsBindingObserver {
       await _camera.toggleTorch();
       if (mounted) setState(() => _torchOn = !_torchOn);
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Svjetiljka nije dostupna na ovom uređaju.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Svjetiljka nije dostupna na ovom uređaju.')),
+        );
+      }
     }
   }
 
