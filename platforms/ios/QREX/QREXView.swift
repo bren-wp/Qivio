@@ -44,7 +44,7 @@ struct QREXApp: App {
 }
 
 struct QREXRoot: View {
-    @State private var tab = 0
+    @State private var tab = ProcessInfo.processInfo.arguments.contains("-qrex-screenshot-create") ? 1 : 0
 
     var body: some View {
         TabView(selection: $tab) {
@@ -136,7 +136,8 @@ struct ResultScreen: View {
 struct CreateScreen: View {
     @EnvironmentObject private var store: QREXStore
     @State private var kind = 0
-    @State private var content = ""
+    @State private var content = ProcessInfo.processInfo.arguments.contains("-qrex-screenshot-create")
+        ? "https://brendigo.com" : ""
     @State private var password = ""
     @State private var revealPassword = false
     @State private var showMore = false

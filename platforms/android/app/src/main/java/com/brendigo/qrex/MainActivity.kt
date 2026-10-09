@@ -73,18 +73,19 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { QREXApp(store) }
+        val screenshotCreate = intent.getStringExtra("qrex_screenshot") == "create"
+        setContent { QREXApp(store, screenshotCreate) }
     }
 }
 
 @Composable
-private fun QREXApp(store: QREXStore) {
+private fun QREXApp(store: QREXStore, screenshotCreate: Boolean = false) {
     val context = LocalContext.current
     val pages = listOf("scan", "create", "history", "more")
         .map { QREXStrings.get(context, store.language, it) }
     val icons = listOf(Icons.Default.CameraAlt, Icons.Default.AddCircle,
         Icons.Default.History, Icons.Default.MoreHoriz)
-    var selected by remember { mutableIntStateOf(0) }
+    var selected by remember { mutableIntStateOf(if (screenshotCreate) 1 else 0) }
     var currentCode by remember { mutableStateOf<String?>(null) }
     val colors = if (store.lightMode) lightColorScheme(
         primary = Color(0xFF1677FF), secondary = purple,
@@ -117,7 +118,7 @@ private fun QREXApp(store: QREXStore) {
                             store.record(raw)
                             currentCode = raw
                         })
-                        1 -> CreateScreen(store, onResult = { currentCode = it })
+                        1 -> CreateScreen(store, screenshotCreate = screenshotCreate, onResult = { currentCode = it })
                         2 -> HistoryScreen(store, onOpen = { currentCode = it })
                         else -> MoreScreen(store)
                     }
@@ -262,10 +263,10 @@ fun generateQR(raw: String): Bitmap? {
 }
 
 @Composable
-private fun CreateScreen(store: QREXStore, onResult: (String) -> Unit) {
+private fun CreateScreen(store: QREXStore, screenshotCreate: Boolean = false, onResult: (String) -> Unit) {
     val types = listOf(tr("url"), tr("text"), tr("wifi"), tr("email"), tr("phone"), tr("location"), tr("contact"))
     var kind by remember { mutableIntStateOf(0) }
-    var content by remember { mutableStateOf("") }
+    var content by remember { mutableStateOf(if (screenshotCreate) "https://brendigo.com" else "") }
     var password by remember { mutableStateOf("") }
     var reveal by remember { mutableStateOf(false) }
     var more by remember { mutableStateOf(false) }
