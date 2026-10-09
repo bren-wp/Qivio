@@ -59,7 +59,7 @@ object QRContent {
     }
 
     fun label(raw: String): String = when {
-        isWifi(raw) -> wifiField(raw, "S") ?: "Wi-Fi mreža"
+        isWifi(raw) -> wifiField(raw, "S") ?: "Wi-Fi"
         safeUrl(raw) != null -> safeUrl(raw)?.host ?: raw
         else -> raw.replace("\n", " ").take(56)
     }

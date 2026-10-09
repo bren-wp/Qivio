@@ -199,6 +199,8 @@ struct ScanScreen: View {
 
     private func readPhoto(_ item: PhotosPickerItem?) async {
         guard let item else { return }
+        // Reset even on a failed or oversized image, so the same photo can be selected again.
+        defer { selectedPhoto = nil }
         do {
             guard let data = try await item.loadTransferable(type: Data.self) else {
                 message = tr("image_failed"); return
@@ -226,6 +228,5 @@ struct ScanScreen: View {
         } catch {
             message = tr("image_failed")
         }
-        selectedPhoto = nil
     }
 }
