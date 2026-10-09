@@ -21,7 +21,9 @@ QrKind detectKind(String raw) {
   if (lower.startsWith('http://') || lower.startsWith('https://')) return QrKind.link;
   if (s.toUpperCase().startsWith('WIFI:')) return QrKind.wifi;
   if (s.toUpperCase().startsWith('BEGIN:VCARD') ||
-      s.toUpperCase().startsWith('MECARD:')) return QrKind.contact;
+      s.toUpperCase().startsWith('MECARD:')) {
+    return QrKind.contact;
+  }
   if (lower.startsWith('mailto:') || RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(s)) {
     return QrKind.email;
   }
@@ -72,8 +74,8 @@ String qrPhone(String number) => 'tel:${number.trim()}';
 String qrLocation(String coordinates) => 'geo:${coordinates.trim()}';
 
 String qrEvent({required String title, required DateTime start, required DateTime end}) {
-  String stamp(DateTime dt) => dt.toUtc().toIso8601String()
-      .replaceAll('-', '').replaceAll(':', '').split('.').first + 'Z';
+  String stamp(DateTime dt) =>
+      '${dt.toUtc().toIso8601String().replaceAll('-', '').replaceAll(':', '').split('.').first}Z';
   final safeTitle = title.replaceAll(RegExp(r'[\r\n]'), ' ').trim();
   return 'BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\n'
       'SUMMARY:$safeTitle\nDTSTART:${stamp(start)}\nDTEND:${stamp(end)}\n'
