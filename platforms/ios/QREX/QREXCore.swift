@@ -122,6 +122,37 @@ final class QREXStore: ObservableObject {
             var unique: Set<String> = []
             items = Array(loaded.filter { unique.insert($0.raw).inserted && $0.raw.count <= 10000 }.prefix(250))
         }
+        migrateFlutterV1(defaults)
+    }
+
+    private func migrateFlutterV1(_ defaults: UserDefaults) {
+        guard let oldText = defaults.string(forKey: "flutter.qrex_history_v1"),
+              let data = oldText.data(using: .utf8),
+              let rows = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]]
+        else { return }
+        let formatter = ISO8601DateFormatter()
+        var known = Set(items.map(\\.raw))
+        var merged = items
+        for row in rows.prefix(250) {
+            guard let raw = row["raw"] as? String, !raw.isEmpty, raw.count <= 10000,
+                  known.insert(raw).inserted else { continue }
+            let dateText = row["date"] as? String ?? ""
+            let date = formatter.date(from: dateText)
+                ?? formatter.date(from: dateText + "Z") ?? Date()
+            merged.append(QRHistoryItem(id: UUID(), raw: raw,
+                                        timestamp: date, saved: row["saved"] as? Bool ?? false))
+            if merged.count == 250 { break }
+        }
+        // Do not remove the Flutter value until a protected Keychain write succeeds.
+        guard persist(merged) else { return }
+        items = merged
+        if defaults.object(forKey: "qrex.light") == nil {
+            lightMode = defaults.bool(forKey: "flutter.qrex_light_v1")
+        }
+        if defaults.object(forKey: "qrex.history.enabled") == nil {
+            historyEnabled = defaults.object(forKey: "flutter.qrex_record_v1") as? Bool ?? true
+        }
+        defaults.removeObject(forKey: "flutter.qrex_history_v1")
     }
 
     func record(_ raw: String) {
