@@ -60,7 +60,9 @@ Uri? actionForPayload(String raw) {
     }
     try {
       if (uri.queryParameters.values.any(
-          (part) => RegExp(r'[\r\n]').hasMatch(part))) return null;
+          (part) => RegExp(r'[\r\n]').hasMatch(part))) {
+        return null;
+      }
     } on FormatException {
       return null;
     }
@@ -128,7 +130,9 @@ bool fitsQrPayload(String raw) => raw.isNotEmpty && utf8.encode(raw).length <= 1
 /// Read Wi-Fi fields as an escape-aware stream, never splitting escaped semicolons.
 String? wifiField(String raw, String field) {
   if (detectKind(raw) != QrKind.wifi ||
-      !const {'T', 'S', 'P', 'H'}.contains(field)) return null;
+      !const {'T', 'S', 'P', 'H'}.contains(field)) {
+    return null;
+  }
 
   final fields = <String, String>{};
   final key = StringBuffer();
