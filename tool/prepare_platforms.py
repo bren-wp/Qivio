@@ -217,8 +217,12 @@ def add_ios_privacy_manifest() -> None:
         raise SystemExit("Cannot find iOS Runner resources build phase.")
     prefix, tail = content.split(begin, 1)
     resources, suffix = tail.split(end, 1)
+    # Flutter creates RunnerTests resources first, then Runner resources.
+    # Attach the manifest specifically to the Runner application target.
     resources, resources_count = re.subn(
-        r"(files = \(\s*\n)",
+        r"(97C146EC1CF9000F007C117D /\* Resources \*/ = \{\s*"
+        r"isa = PBXResourcesBuildPhase;\s*"
+        r"buildActionMask = 2147483647;\s*files = \(\s*\n)",
         lambda m: m.group(1) +
         f"\t\t\t\t{build_id} /* PrivacyInfo.xcprivacy in Resources */,\n",
         resources,
