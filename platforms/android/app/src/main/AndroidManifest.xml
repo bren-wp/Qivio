@@ -4,6 +4,7 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <application android:allowBackup="false" android:fullBackupContent="false"
         android:usesCleartextTraffic="false" android:label="QREX"
+        android:icon="@drawable/qrex_icon" android:roundIcon="@drawable/qrex_icon"
         android:theme="@android:style/Theme.Material.NoActionBar"
         android:supportsRtl="true">
         <activity android:name=".MainActivity" android:exported="true"
