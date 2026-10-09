@@ -56,6 +56,20 @@ void main() {
     store.dispose();
   });
 
+  test('potpuno brisanje vraća lokalne postavke na početne', () async {
+    final store = await AppStore.load();
+    await store.save('osobni podatak');
+    await store.setLight(true);
+    await store.setHistoryEnabled(false);
+    await store.clearAll();
+    final restored = await AppStore.load();
+    expect(restored.entries, isEmpty);
+    expect(restored.light, isFalse);
+    expect(restored.historyEnabled, isTrue);
+    store.dispose();
+    restored.dispose();
+  });
+
   test('brisanjem obične povijesti ostaju spremljeni kodovi', () async {
     final store = await AppStore.load();
     await store.record('tekst');

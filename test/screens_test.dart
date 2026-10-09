@@ -62,9 +62,10 @@ void main() {
       home: Scaffold(body: MorePage(store: store,
         navigate: (index, {bool gallery = false}) => selected = index))));
     expect(find.text('Skeniraj iz slike'), findsOneWidget);
-    expect(find.text('Spremanje povijesti'), findsOneWidget);
     await tester.tap(find.text('Stvori QR'));
     expect(selected, 1);
+    await tester.scrollUntilVisible(find.text('Spremanje povijesti'), 200);
+    expect(find.text('Spremanje povijesti'), findsOneWidget);
     store.dispose();
   });
 

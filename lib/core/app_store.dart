@@ -73,8 +73,12 @@ class AppStore extends ChangeNotifier {
 
   Future<void> clearAll() async {
     _entries.clear();
+    _light = false;
+    _historyEnabled = true;
     notifyListeners();
-    await _persist();
+    await _prefs.remove(_historyKey);
+    await _prefs.remove('qrex_light_v1');
+    await _prefs.remove('qrex_record_v1');
   }
 
   Future<void> setLight(bool value) async {
