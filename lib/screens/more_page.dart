@@ -23,10 +23,10 @@ class MorePage extends StatelessWidget {
   Future<void> _openUrl(BuildContext context, Uri url) async {
     try {
       if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-        _message(context, 'Poveznicu nije moguće otvoriti.');
+        if (context.mounted) _message(context, 'Poveznicu nije moguće otvoriti.');
       }
     } catch (_) {
-      _message(context, 'Na uređaju nema aplikacije za otvaranje poveznice.');
+      if (context.mounted) _message(context, 'Na uređaju nema aplikacije za otvaranje poveznice.');
     }
   }
 
@@ -54,9 +54,9 @@ class MorePage extends StatelessWidget {
     if (confirmed != true) return;
     try {
       await store.clearAll();
-      _message(context, 'Podaci i postavke su izbrisani.');
+      if (context.mounted) _message(context, 'Podaci i postavke su izbrisani.');
     } catch (_) {
-      _message(context, 'Brisanje nije u potpunosti uspjelo. Pokušaj ponovno.');
+      if (context.mounted) _message(context, 'Brisanje nije u potpunosti uspjelo. Pokušaj ponovno.');
     }
   }
 
@@ -254,7 +254,7 @@ class MorePage extends StatelessWidget {
     try {
       await callback();
     } catch (_) {
-      _message(context, 'Postavka nije spremljena. Pokušaj ponovno.');
+      if (context.mounted) _message(context, 'Postavka nije spremljena. Pokušaj ponovno.');
     }
   }
 
