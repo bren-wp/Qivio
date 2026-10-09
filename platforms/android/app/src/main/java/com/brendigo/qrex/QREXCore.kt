@@ -54,7 +54,7 @@ object QRContent {
         return runCatching {
             val uri = Uri.parse(raw)
             if (uri.scheme?.lowercase() !in setOf("http", "https") ||
-                uri.host.isNullOrBlank() || !uri.userInfo.isNullOrBlank()) null else uri
+                uri.host.isNullOrBlank() || (uri.encodedAuthority?.contains("@") == true)) null else uri
         }.getOrNull()
     }
 
