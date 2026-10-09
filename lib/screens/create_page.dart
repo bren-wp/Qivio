@@ -194,6 +194,10 @@ class _CreatePageState extends State<CreatePage> {
       const SizedBox(height: 8),
       const Text('Odaberi vrstu i unesi podatke.', style: TextStyle(color: QrexPalette.muted)),
       const SizedBox(height: 23),
+      Container(height: 3, width: double.infinity,
+        decoration: const BoxDecoration(gradient: QrexPalette.bluePurple,
+          borderRadius: BorderRadius.all(Radius.circular(3)))),
+      const SizedBox(height: 18),
       Wrap(spacing: 8, runSpacing: 8, children: [
         for (final type in QrKind.values)
           ChoiceChip(

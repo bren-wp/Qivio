@@ -21,6 +21,7 @@ class _ScannerPageState extends State<ScannerPage> with WidgetsBindingObserver {
   );
   bool _handling = false;
   bool _torchOn = false;
+  double _zoom = 0;
 
   @override
   void initState() {
@@ -103,6 +104,16 @@ class _ScannerPageState extends State<ScannerPage> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _setZoom(double zoom) async {
+    try {
+      await _camera.setZoomScale(zoom);
+      if (mounted) setState(() => _zoom = zoom);
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Zumiranje nije dostupno na ovom uređaju.')));
+    }
+  }
+
   Future<void> _toggleTorch() async {
     try {
       await _camera.toggleTorch();
@@ -155,7 +166,24 @@ class _ScannerPageState extends State<ScannerPage> with WidgetsBindingObserver {
         ),
         const Spacer(),
         const _ScanCorners(),
-        const SizedBox(height: 32),
+        const SizedBox(height: 20),
+        Semantics(label: 'Zum kamere', child: Container(
+          decoration: BoxDecoration(color: const Color(0xD9091428),
+            border: Border.all(color: Colors.white24), borderRadius: BorderRadius.circular(30)),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            for (final zoom in [0.0, 0.5, 1.0])
+              Padding(padding: const EdgeInsets.all(3), child: InkWell(
+                borderRadius: BorderRadius.circular(30), onTap: () => _setZoom(zoom),
+                child: Container(width: 50, height: 34, alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: _zoom == zoom ? QrexPalette.primary : Colors.transparent,
+                    borderRadius: BorderRadius.circular(30)),
+                  child: Text(zoom == 0 ? '1×' : zoom == .5 ? '2×' : 'Max',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+              )),
+          ]),
+        )),
+        const SizedBox(height: 17),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
           decoration: BoxDecoration(

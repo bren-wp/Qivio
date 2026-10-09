@@ -28,6 +28,23 @@ class MorePage extends StatelessWidget {
         const SizedBox(height: 8),
         const Text('Sve na jednom mjestu.', style: TextStyle(color: QrexPalette.muted)),
         const SizedBox(height: 22),
+        Card(child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 19),
+          decoration: BoxDecoration(gradient: QrexPalette.bluePurple,
+            borderRadius: BorderRadius.circular(18)),
+          child: const Row(children: [
+            QrexMark(size: 42), SizedBox(width: 16),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Skeniraj. Stvori. Dijeli.',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17)),
+              SizedBox(height: 5),
+              Text('Sve što trebaš za QR, bez prijave.',
+                style: TextStyle(color: Colors.white, fontSize: 12)),
+            ])),
+          ]),
+        )),
+        const SizedBox(height: 14),
         GridView.count(
           shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
           crossAxisCount: 2, childAspectRatio: 1.6,

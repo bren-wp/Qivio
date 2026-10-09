@@ -8,6 +8,9 @@ class QrexPalette {
   static const cyan = Color(0xFF10C5FA);
   static const purple = Color(0xFF9047F8);
   static const muted = Color(0xFFADB9D0);
+  static const border = Color(0xFF273B57);
+  static const bluePurple = LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
+    colors: [cyan, primary, purple], stops: [0, .48, 1]);
 }
 
 ThemeData qrexTheme(bool light) {
@@ -22,16 +25,20 @@ ThemeData qrexTheme(bool light) {
     colorScheme: scheme,
     scaffoldBackgroundColor: light ? const Color(0xFFF3F6FF) : QrexPalette.base,
     fontFamily: 'Roboto',
-    appBarTheme: const AppBarTheme(backgroundColor: Colors.transparent, centerTitle: true),
+    appBarTheme: const AppBarTheme(backgroundColor: Colors.transparent, centerTitle: true, scrolledUnderElevation: 0),
     cardTheme: CardThemeData(
       elevation: 0,
       color: light ? Colors.white : QrexPalette.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: light ? const Color(0xFFD8E1F1) : QrexPalette.border),
+        borderRadius: BorderRadius.circular(18)),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: light ? const Color(0xFFE8EEFA) : QrexPalette.surface,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: light ? const Color(0xFFD8E1F1) : QrexPalette.border)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 17, vertical: 16),
     ),
   );
@@ -90,6 +97,7 @@ class QrexWordmark extends StatelessWidget {
   ]);
 }
 
+/// Reference-style gradient action with a real disabled state.
 class QrexButton extends StatelessWidget {
   const QrexButton({super.key, required this.label, required this.onPressed, this.icon, this.secondary = false});
   final String label;
@@ -98,14 +106,28 @@ class QrexButton extends StatelessWidget {
   final bool secondary;
   @override
   Widget build(BuildContext context) {
-    final content = Padding(padding: const EdgeInsets.symmetric(vertical: 15), child:
-      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        if (icon != null) ...[Icon(icon, size: 20), const SizedBox(width: 10)],
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+    final content = Padding(padding: const EdgeInsets.symmetric(vertical: 15),
+      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        if (icon != null) ...[Icon(icon, size: 20), const SizedBox(width: 9)],
+        Flexible(child: Text(label, textAlign: TextAlign.center,
+          style: const TextStyle(fontWeight: FontWeight.w700))),
       ]));
-    return SizedBox(width: double.infinity, child: secondary
-        ? OutlinedButton(onPressed: onPressed, child: content)
-        : FilledButton(onPressed: onPressed, style: FilledButton.styleFrom(
-            backgroundColor: QrexPalette.primary, foregroundColor: Colors.white), child: content));
+    if (secondary) return SizedBox(width: double.infinity,
+      child: OutlinedButton(onPressed: onPressed, child: content));
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: onPressed == null ? null : QrexPalette.bluePurple,
+        color: onPressed == null ? Theme.of(context).disabledColor : null,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: onPressed == null ? null : [
+          BoxShadow(color: QrexPalette.primary.withValues(alpha: .20), blurRadius: 18),
+        ],
+      ),
+      child: Material(color: Colors.transparent, child: InkWell(
+        borderRadius: BorderRadius.circular(15), onTap: onPressed,
+        child: DefaultTextStyle.merge(style: const TextStyle(color: Colors.white),
+          child: IconTheme(data: const IconThemeData(color: Colors.white), child: content)),
+      )),
+    );
   }
 }
