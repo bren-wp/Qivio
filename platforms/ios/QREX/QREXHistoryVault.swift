@@ -31,7 +31,12 @@ enum QREXHistoryVault {
         var insert = query
         insert[kSecValueData as String] = data
         insert[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-        return SecItemAdd(insert as CFDictionary, nil) == errSecSuccess
+        let inserted = SecItemAdd(insert as CFDictionary, nil)
+        if inserted != errSecSuccess {
+            // Error code only: never log the content of encrypted QR records.
+            NSLog("QREX Keychain write unavailable (status %d)", inserted)
+        }
+        return inserted == errSecSuccess
     }
 
     static func delete() {
