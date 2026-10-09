@@ -1,11 +1,12 @@
-name: Capture real application screenshots
+name: Capture verified QREX screens
 
 on:
   push:
-    branches: [feature/english-localization]
+    branches: [fix/screenshot-qa-and-stability]
     paths:
       - "platforms/**"
       - "l10n/**"
+      - "tool/verify_screenshots.py"
       - ".github/workflows/capture-screenshots.yml"
   workflow_dispatch:
 
@@ -13,13 +14,14 @@ permissions:
   contents: write
 
 concurrency:
-  group: qrex-screenshots
+  group: qrex-actual-screens-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   android:
+    name: Actual Android emulator screenshot
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -30,10 +32,10 @@ jobs:
         with:
           gradle-version: '8.13'
       - run: python3 tool/generate_localizations.py --check
-      - name: Build Android debug app
+      - name: Build Android Kotlin APK
         working-directory: platforms/android
         run: gradle --no-daemon :app:assembleDebug
-      - name: Capture screen using real Android emulator
+      - name: Run QREX and capture actual display pixels
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -42,13 +44,18 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: |
-            adb install platforms/android/app/build/outputs/apk/debug/app-debug.apk
+            set -e
+            adb wait-for-device
+            adb install -r platforms/android/app/build/outputs/apk/debug/app-debug.apk
             adb shell am start -n com.brendigo.qrex/.MainActivity --es qrex_screenshot create
-            sleep 10
-            adb shell screencap -p /sdcard/qrex.png
+            sleep 12
             mkdir -p docs/screenshots
-            adb pull /sdcard/qrex.png docs/screenshots/android-create.png
-            test -s docs/screenshots/android-create.png
+            # Stream directly to the CI runner. Android 14 denies writing to
+            # /sdcard from the shell in some managed emulator configurations.
+            adb exec-out screencap -p > docs/screenshots/android-create.png
+            python3 tool/verify_screenshots.py docs/screenshots/android-create.png
+            # Exercise the Keystore on a real Android runtime, not the JVM test runner.
+            gradle -p platforms/android --no-daemon --stacktrace :app:connectedDebugAndroidTest
       - uses: actions/upload-artifact@v4
         with:
           name: qrex-actual-android
@@ -56,12 +63,13 @@ jobs:
           if-no-files-found: error
 
   ios:
+    name: Actual iPhone simulator screenshot
     runs-on: macos-latest
-    timeout-minutes: 50
+    timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
       - run: brew install xcodegen
-      - name: Generate QREX AppIcon
+      - name: Prepare app icon
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -79,97 +87,58 @@ jobs:
       - name: Generate Xcode project
         working-directory: platforms/ios
         run: xcodegen generate --spec project.yml
-      - name: Build iOS simulator app
+      - name: Compile standalone SwiftUI app
         working-directory: platforms/ios
         run: |
           xcodebuild -project QREX.xcodeproj -scheme QREX -configuration Release \
             -sdk iphonesimulator -destination "generic/platform=iOS Simulator" \
             -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
-      - name: Screenshot from booted iPhone simulator
+      - name: Run QREX and capture actual display pixels
         run: |
           DEVICE=$(python3 - <<'PY'
-          import json,subprocess
+          import json, subprocess
           devices=json.loads(subprocess.check_output(["xcrun","simctl","list","devices","available","--json"]))["devices"]
-          iphones=[item["udid"] for entries in devices.values() for item in entries
-                   if item.get("isAvailable") and "iPhone" in item.get("name","")]
-          if not iphones:
-              raise SystemExit("No iPhone simulator is installed; cannot produce a genuine screenshot.")
-          print(iphones[0])
+          matches=[i["udid"] for v in devices.values() for i in v if i.get("isAvailable") and "iPhone" in i.get("name", "")]
+          if not matches: raise SystemExit("No available iPhone simulator")
+          print(matches[0])
           PY
           )
           xcrun simctl boot "$DEVICE"
           xcrun simctl bootstatus "$DEVICE" -b
           xcrun simctl install "$DEVICE" platforms/ios/build/Build/Products/Release-iphonesimulator/QREX.app
           xcrun simctl launch "$DEVICE" com.brendigo.qrex -qrex-screenshot-create
-          sleep 9
+          sleep 10
           mkdir -p docs/screenshots
           xcrun simctl io "$DEVICE" screenshot docs/screenshots/ios-create.png
-          test -s docs/screenshots/ios-create.png
+          python3 tool/verify_screenshots.py docs/screenshots/ios-create.png
       - uses: actions/upload-artifact@v4
         with:
           name: qrex-actual-ios
           path: docs/screenshots/ios-create.png
           if-no-files-found: error
 
-  publish_ios:
-    needs: [ios]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: feature/english-localization
-      - uses: actions/download-artifact@v4
-        with:
-          name: qrex-actual-ios
-          path: docs/screenshots
-      - name: Verify actual iOS simulator screenshot
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path("docs/screenshots/ios-create.png")
-          assert p.exists() and p.stat().st_size > 20000
-          assert p.read_bytes().startswith(b"\\x89PNG\\r\\n\\x1a\\n")
-          PY
-      - name: Commit true screenshot to GitHub
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/screenshots/ios-create.png
-          if ! git diff --cached --quiet; then
-            git commit -m "docs: update actual iPhone simulator screenshot [skip ci]"
-            git pull --rebase origin feature/english-localization
-            git push origin HEAD:feature/english-localization
-          fi
-
   publish:
-    needs: [android, ios, publish_ios]
+    name: Commit both verified real device screenshots
+    needs: [android, ios]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: feature/english-localization
+          ref: fix/screenshot-qa-and-stability
       - uses: actions/download-artifact@v4
         with:
           pattern: qrex-actual-*
           path: docs/screenshots
           merge-multiple: true
-      - name: Validate authentic PNG captures
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          for n in ("android-create.png","ios-create.png"):
-              p=Path("docs/screenshots")/n
-              with p.open("rb") as f:
-                  assert f.read(8)==b"\x89PNG\r\n\x1a\n", f"Invalid screenshot: {p}"
-              assert p.stat().st_size>20000
-          print("Verified real emulator and simulator PNG screenshots.")
-          PY
-      - name: Commit screenshots to GitHub
+      - name: Reject incomplete screenshots
+        run: python3 tool/verify_screenshots.py docs/screenshots/android-create.png docs/screenshots/ios-create.png
+      - name: Commit without replacing original application assets
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/screenshots/android-create.png docs/screenshots/ios-create.png
           if ! git diff --cached --quiet; then
-            git commit -m "docs: add actual Android and iOS simulator screenshots [skip ci]"
-            git push origin HEAD:feature/english-localization
+            git commit -m "docs: capture genuine QREX Android and iOS screens [skip ci]"
+            git pull --rebase origin fix/screenshot-qa-and-stability
+            git push origin HEAD:fix/screenshot-qa-and-stability
           fi

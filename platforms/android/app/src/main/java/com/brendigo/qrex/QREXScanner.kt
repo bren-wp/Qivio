@@ -45,13 +45,20 @@ fun ScanScreen(onRead: (String) -> Unit) {
     val qrNotFound = tr("qr_not_found")
     val cameraFailed = tr("camera_failed")
     val handled = remember { AtomicBoolean(false) }
+    var camera by remember { mutableStateOf<androidx.camera.core.Camera?>(null) }
+    var torchOn by remember { mutableStateOf(false) }
     val options = remember {
         BarcodeScannerOptions.Builder()
             .setBarcodeFormats(Barcode.FORMAT_QR_CODE).build()
     }
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
-            val image = runCatching { InputImage.fromFilePath(context, uri) }.getOrNull()
+            // Do not eagerly decode enormous gallery content into process memory.
+            val fileSize = runCatching {
+                context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { it.length }
+            }.getOrNull() ?: -1L
+            val image = if (fileSize > 20_000_000L) null else
+                runCatching { InputImage.fromFilePath(context, uri) }.getOrNull()
             if (image == null) {
                 message = imageFailed
             } else {
@@ -99,20 +106,29 @@ fun ScanScreen(onRead: (String) -> Unit) {
                                 if (media == null || handled.get()) { frame.close(); return }
                                 val input = InputImage.fromMediaImage(media,
                                     frame.imageInfo.rotationDegrees)
-                                scanner.process(input).addOnSuccessListener { codes ->
-                                    val value = codes.firstOrNull { it.format == Barcode.FORMAT_QR_CODE }?.rawValue
-                                    if (!value.isNullOrEmpty() && handled.compareAndSet(false, true)) onRead(value)
-                                }.addOnCompleteListener { frame.close() }
+                                runCatching {
+                                    scanner.process(input).addOnSuccessListener { codes ->
+                                        val value = codes.firstOrNull { it.format == Barcode.FORMAT_QR_CODE }?.rawValue
+                                        if (!value.isNullOrEmpty() && handled.compareAndSet(false, true)) onRead(value)
+                                    }.addOnCompleteListener { frame.close() }
+                                }.onFailure {
+                                    frame.close()
+                                    message = cameraFailed
+                                }
                             }
                             process()
                         }
                         provider.unbindAll()
-                        provider.bindToLifecycle(owner, CameraSelector.DEFAULT_BACK_CAMERA,
-                            cameraPreview, analyzer)
+                        camera = provider.bindToLifecycle(
+                            owner, CameraSelector.DEFAULT_BACK_CAMERA, cameraPreview, analyzer
+                        )
                     }.onFailure { message = cameraFailed }
                 }, ContextCompat.getMainExecutor(context))
                 onDispose {
                     disposed.set(true)
+                    runCatching { camera?.cameraControl?.enableTorch(false) }
+                    camera = null
+                    torchOn = false
                     if (cameraFuture.isDone) runCatching { cameraFuture.get().unbindAll() }
                     scanner.close()
                 }
@@ -124,13 +140,30 @@ fun ScanScreen(onRead: (String) -> Unit) {
             Box(Modifier.fillMaxWidth().weight(1f)
                 .background(Color(0xFF101B2C), shape = RoundedCornerShape(28.dp)),
                 contentAlignment = Alignment.Center) {
-                Text(tr("allow_camera"),
-                    modifier = Modifier.padding(20.dp))
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(tr("allow_camera"), modifier = Modifier.padding(20.dp))
+                    OutlinedButton(onClick = { permission.launch(Manifest.permission.CAMERA) }) {
+                        Text(tr("enable_camera"))
+                    }
+                }
             }
         }
         Spacer(Modifier.height(16.dp))
-        OutlinedButton(onClick = { photoPicker.launch("image/*") }) {
-            Text(tr("from_gallery"))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedButton(
+                onClick = {
+                    val next = !torchOn
+                    if (runCatching { camera?.cameraControl?.enableTorch(next) }.isSuccess) {
+                        torchOn = next
+                    }
+                },
+                enabled = allowed && camera?.cameraInfo?.hasFlashUnit() == true
+            ) {
+                Text(tr("flashlight"))
+            }
+            OutlinedButton(onClick = { photoPicker.launch("image/*") }) {
+                Text(tr("from_gallery"))
+            }
         }
         Spacer(Modifier.height(8.dp))
         Text(tr("point_camera"), color = Color.LightGray)

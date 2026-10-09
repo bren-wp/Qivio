@@ -41,7 +41,7 @@ jobs:
           python3 tool/check_translation_usage.py
       - name: Compile Kotlin app and execute unit tests
         working-directory: platforms/android
-        run: gradle --no-daemon --stacktrace :app:assembleDebug :app:testDebugUnitTest
+        run: gradle --no-daemon --stacktrace :app:assembleDebug :app:testDebugUnitTest :app:assembleDebugAndroidTest
       - name: Confirm Android package
         run: test -s platforms/android/app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
@@ -53,7 +53,7 @@ jobs:
   ios:
     name: SwiftUI iOS simulator compile
     runs-on: macos-latest
-    timeout-minutes: 35
+    timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
       - name: Install XcodeGen
@@ -95,3 +95,23 @@ jobs:
           test -s build/Build/Products/Release-iphonesimulator/QREX.app/en.lproj/Localizable.strings
           test -s build/Build/Products/Release-iphonesimulator/QREX.app/hr.lproj/Localizable.strings
           test -s build/Build/Products/Release-iphonesimulator/QREX.app/de.lproj/Localizable.strings
+
+      - name: Execute Swift XCTest suite on a booted iPhone simulator
+        working-directory: platforms/ios
+        run: |
+          DEVICE=$(python3 - <<'PY'
+          import json,subprocess
+          all_devices=json.loads(subprocess.check_output([
+            "xcrun","simctl","list","devices","available","--json"
+          ]))["devices"]
+          matches=[d["udid"] for devices in all_devices.values() for d in devices
+                   if d.get("isAvailable") and "iPhone" in d.get("name","")]
+          if not matches: raise SystemExit("No iPhone simulator available for XCTest")
+          print(matches[0])
+          PY
+          )
+          xcodebuild -project QREX.xcodeproj -scheme QREX \
+            -configuration Debug -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,id=$DEVICE" \
+            -derivedDataPath build -parallel-testing-enabled NO \
+            CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=YES test

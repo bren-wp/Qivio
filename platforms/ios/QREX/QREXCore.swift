@@ -90,11 +90,74 @@ final class QREXStore: ObservableObject {
         historyEnabled = defaults.object(forKey: "qrex.history.enabled") as? Bool ?? true
         lightMode = defaults.bool(forKey: "qrex.light")
         language = defaults.string(forKey: "qrex.language") ?? "en"
-        if let data = defaults.data(forKey: "qrex.history"),
+        let legacy = defaults.data(forKey: "qrex.history")
+        // Device-only Keychain items can survive reinstall on some OS versions.
+        // Reset orphaned items on a truly fresh installation, but keep legacy data.
+        if defaults.object(forKey: "qrex.installation.vault") == nil {
+            if legacy == nil { QREXHistoryVault.delete() }
+            defaults.set(true, forKey: "qrex.installation.vault")
+        }
+        var stored = QREXHistoryVault.read()
+        if let legacy, stored == nil {
+            if QREXHistoryVault.write(legacy) {
+                defaults.removeObject(forKey: "qrex.history")
+                stored = legacy
+            } else {
+                // Fall back to non-secret history only; never keep plaintext
+                // Wi-Fi credentials after a failed Keychain migration.
+                let nonSecret = (try? JSONDecoder().decode([QRHistoryItem].self, from: legacy))?
+                    .filter { !QRContent.isWifi($0.raw) } ?? []
+                if let safe = try? JSONEncoder().encode(nonSecret) {
+                    defaults.set(safe, forKey: "qrex.history")
+                    stored = safe
+                } else {
+                    defaults.removeObject(forKey: "qrex.history")
+                }
+            }
+        } else if stored != nil && legacy != nil {
+            defaults.removeObject(forKey: "qrex.history")
+        }
+        if let data = stored,
            let loaded = try? JSONDecoder().decode([QRHistoryItem].self, from: data) {
             var unique: Set<String> = []
             items = Array(loaded.filter { unique.insert($0.raw).inserted && $0.raw.count <= 10000 }.prefix(250))
         }
+        migrateFlutterV1(defaults)
+    }
+
+    private func migrateFlutterV1(_ defaults: UserDefaults) {
+        guard let oldText = defaults.string(forKey: "flutter.qrex_history_v1"),
+              let data = oldText.data(using: .utf8),
+              let rows = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]]
+        else { return }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let basicFormatter = ISO8601DateFormatter()
+        basicFormatter.formatOptions = [.withInternetDateTime]
+        var known = Set(items.map(\.raw))
+        var merged = items
+        for row in rows.prefix(250) {
+            guard let raw = row["raw"] as? String, !raw.isEmpty, raw.count <= 10000,
+                  known.insert(raw).inserted else { continue }
+            let dateText = row["date"] as? String ?? ""
+            let date = formatter.date(from: dateText)
+                ?? formatter.date(from: dateText + "Z")
+                ?? basicFormatter.date(from: dateText)
+                ?? basicFormatter.date(from: dateText + "Z") ?? Date()
+            merged.append(QRHistoryItem(id: UUID(), raw: raw,
+                                        timestamp: date, saved: row["saved"] as? Bool ?? false))
+            if merged.count == 250 { break }
+        }
+        // Do not remove the Flutter value until a protected Keychain write succeeds.
+        guard persist(merged) else { return }
+        items = merged
+        if defaults.object(forKey: "qrex.light") == nil {
+            lightMode = defaults.bool(forKey: "flutter.qrex_light_v1")
+        }
+        if defaults.object(forKey: "qrex.history.enabled") == nil {
+            historyEnabled = defaults.object(forKey: "flutter.qrex_record_v1") as? Bool ?? true
+        }
+        defaults.removeObject(forKey: "flutter.qrex_history_v1")
     }
 
     func record(_ raw: String) {
@@ -108,39 +171,39 @@ final class QREXStore: ObservableObject {
     }
 
     private func update(_ raw: String, saved: Bool) {
-        items.removeAll { $0.raw == raw }
-        items.insert(QRHistoryItem(id: UUID(), raw: raw, timestamp: Date(), saved: saved), at: 0)
-        if items.count > 250 {
-            if let lastUnsaved = items.lastIndex(where: { !$0.saved }) {
-                items.remove(at: lastUnsaved)
+        var next = items.filter { $0.raw != raw }
+        next.insert(QRHistoryItem(id: UUID(), raw: raw, timestamp: Date(), saved: saved), at: 0)
+        if next.count > 250 {
+            if let lastUnsaved = next.lastIndex(where: { !$0.saved }) {
+                next.remove(at: lastUnsaved)
             } else {
-                items.removeLast()
+                next.removeLast()
             }
         }
-        persist()
+        if persist(next) { items = next }
     }
 
     func delete(_ item: QRHistoryItem) {
-        items.removeAll { $0.id == item.id }
-        persist()
+        let next = items.filter { $0.id != item.id }
+        if persist(next) { items = next }
     }
 
     func clearHistory() {
-        items.removeAll { !$0.saved }
-        persist()
+        let next = items.filter { $0.saved }
+        if persist(next) { items = next }
     }
 
     func clearAll() {
         items.removeAll()
+        QREXHistoryVault.delete()
         UserDefaults.standard.removeObject(forKey: "qrex.history")
         historyEnabled = true
         lightMode = false
         language = "en"
     }
 
-    private func persist() {
-        if let data = try? JSONEncoder().encode(items) {
-            UserDefaults.standard.set(data, forKey: "qrex.history")
-        }
+    private func persist(_ records: [QRHistoryItem]) -> Bool {
+        guard let data = try? JSONEncoder().encode(records) else { return false }
+        return QREXHistoryVault.write(data)
     }
 }

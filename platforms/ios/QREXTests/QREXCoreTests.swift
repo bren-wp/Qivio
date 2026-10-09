@@ -27,6 +27,42 @@ final class QREXCoreTests: XCTestCase {
     }
 
     @MainActor
+    func testKeychainHistoryNeverFallsBackToPlainPreferences() {
+        let store = QREXStore()
+        store.clearAll()
+        let payload = QRContent.wifi(ssid: "Private Network", password: "never-in-defaults")
+        store.save(payload)
+        XCTAssertEqual(store.items.first?.raw, payload)
+        XCTAssertNil(UserDefaults.standard.data(forKey: "qrex.history"))
+        XCTAssertNotNil(QREXHistoryVault.read())
+        store.clearAll()
+        XCTAssertNil(QREXHistoryVault.read())
+    }
+
+    @MainActor
+    func testFlutterHistoryMigrationPreservesSavedCodes() {
+        let initial = QREXStore()
+        initial.clearAll()
+        let input = "[{\"raw\":\"https://brendigo.com\",\"date\":\"2026-10-09T10:12:13.123\",\"saved\":true}]"
+        UserDefaults.standard.set(input, forKey: "flutter.qrex_history_v1")
+        let restored = QREXStore()
+        XCTAssertTrue(restored.items.contains {
+            $0.raw == "https://brendigo.com" && $0.saved
+        })
+        XCTAssertNil(UserDefaults.standard.string(forKey: "flutter.qrex_history_v1"))
+        if let migrated = restored.items.first {
+            let calendar = Calendar(identifier: .gregorian)
+            let components = calendar.dateComponents(in: TimeZone(secondsFromGMT: 0)!, from: migrated.timestamp)
+            XCTAssertEqual(components.year, 2026)
+            XCTAssertEqual(components.month, 10)
+            XCTAssertEqual(components.day, 9)
+        } else {
+            XCTFail("Missing migrated entry")
+        }
+        restored.clearAll()
+    }
+
+    @MainActor
     func testNoAutomaticWifiHistory() {
         let store = QREXStore()
         store.clearAll()
