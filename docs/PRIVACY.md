@@ -13,7 +13,7 @@ QREX is an Android and iOS application for scanning and generating QR codes loca
 - **Optional history:** if enabled, QR contents and scan time can be stored in the application's local data, capped at 250 items. Wi-Fi QR codes are **not automatically recorded**. Manually saving a Wi-Fi code may also save its password.
 - **Preferences:** your selected display theme, language and history preference are saved locally.
 
-**Important:** The current local storage is not a dedicated encrypted secrets vault. Avoid manually saving sensitive passwords. More protection is planned before the platform-focused apps replace the existing public release.
+**Storage protection in the new Kotlin/Swift projects:** manually saved Wi-Fi payloads use AES-GCM encryption with a non-exportable Android Keystore key; iOS saves QR history inside the device-only Keychain. Existing plaintext history is migrated when possible. The previously published Flutter release (v0.1.3) does **not** automatically gain these protections. Device access and sharing QR contents with other apps still pose privacy risks.
 
 ## Data collection and sharing
 

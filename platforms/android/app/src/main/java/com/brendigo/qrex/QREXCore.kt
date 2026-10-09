@@ -80,16 +80,27 @@ class QREXStore(context: Context) {
         private set
 
     init {
+        // Upgrade old plaintext Wi-Fi records into Keystore-backed ciphertext.
+        // Undecryptable records are discarded rather than exposing credentials.
+        var upgradeNeeded = false
         runCatching {
             val stored = JSONArray(preferences.getString("history", "[]") ?: "[]")
             val seen = mutableSetOf<String>()
             for (i in 0 until minOf(stored.length(), 250)) {
                 val item = stored.optJSONObject(i) ?: continue
-                val raw = item.optString("raw")
+                val value = item.optString("raw")
+                val raw = if (QREXSecretCipher.isEncrypted(value))
+                    QREXSecretCipher.decrypt(value) ?: continue
+                else value
+                if (QRContent.isWifi(raw) && !QREXSecretCipher.isEncrypted(value)) {
+                    upgradeNeeded = true
+                    if (!QREXSecretCipher.available()) continue
+                }
                 if (raw.isBlank() || raw.length > 10000 || !seen.add(raw)) continue
                 items += QRRecord(raw, item.optLong("timestamp"), item.optBoolean("saved"))
             }
         }
+        if (upgradeNeeded) persist()
     }
 
     fun record(raw: String) {
@@ -103,28 +114,31 @@ class QREXStore(context: Context) {
     }
 
     private fun update(raw: String, saved: Boolean) {
-        items.removeAll { it.raw == raw }
-        items.add(0, QRRecord(raw, System.currentTimeMillis(), saved))
-        if (items.size > 250) {
-            val lastUnsaved = items.indexOfLast { !it.saved }
-            items.removeAt(if (lastUnsaved >= 0) lastUnsaved else items.lastIndex)
+        val next = items.filterNot { it.raw == raw }.toMutableList()
+        next.add(0, QRRecord(raw, System.currentTimeMillis(), saved))
+        if (next.size > 250) {
+            val lastUnsaved = next.indexOfLast { !it.saved }
+            next.removeAt(if (lastUnsaved >= 0) lastUnsaved else next.lastIndex)
         }
-        persist()
+        if (persist(next)) {
+            items.clear()
+            items.addAll(next)
+        }
     }
 
     fun remove(item: QRRecord) {
-        items.remove(item)
-        persist()
+        val next = items.filterNot { it == item }
+        if (persist(next)) { items.clear(); items.addAll(next) }
     }
 
     fun clearHistory() {
-        items.removeAll { !it.saved }
-        persist()
+        val next = items.filter { it.saved }
+        if (persist(next)) { items.clear(); items.addAll(next) }
     }
 
     fun clearAll() {
         items.clear()
-        preferences.edit().clear().apply()
+        preferences.edit().clear().commit()
         historyEnabled = true
         lightMode = false
         language = "en"
@@ -146,12 +160,15 @@ class QREXStore(context: Context) {
         preferences.edit().putBoolean("lightMode", value).apply()
     }
 
-    private fun persist() {
+    private fun persist(records: List<QRRecord> = items): Boolean {
         val array = JSONArray()
-        items.forEach {
-            array.put(JSONObject().put("raw", it.raw)
-                .put("timestamp", it.timestamp).put("saved", it.saved))
+        for (item in records) {
+            val protected = if (QRContent.isWifi(item.raw))
+                QREXSecretCipher.encrypt(item.raw) ?: return false
+            else item.raw
+            array.put(JSONObject().put("raw", protected)
+                .put("timestamp", item.timestamp).put("saved", item.saved))
         }
-        preferences.edit().putString("history", array.toString()).apply()
+        return preferences.edit().putString("history", array.toString()).commit()
     }
 }

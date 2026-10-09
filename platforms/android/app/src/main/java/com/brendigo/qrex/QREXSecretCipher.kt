@@ -1,0 +1,55 @@
+package com.brendigo.qrex
+
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
+import android.util.Base64
+import java.security.KeyStore
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.GCMParameterSpec
+
+/** Encrypts manually saved Wi-Fi QR credentials with a non-exportable Android Keystore key. */
+internal object QREXSecretCipher {
+    private const val ALIAS = "com.brendigo.qrex.history.wifi.v1"
+    private const val PREFIX = "qrex-gcm:v1:"
+    private const val ALGORITHM = "AES/GCM/NoPadding"
+
+    fun isEncrypted(raw: String): Boolean = raw.startsWith(PREFIX)
+
+    private fun key(): SecretKey {
+        val ks = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+        val existing = ks.getKey(ALIAS, null) as? SecretKey
+        if (existing != null) return existing
+        val generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
+        generator.init(KeyGenParameterSpec.Builder(
+            ALIAS, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+        ).setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+            .setKeySize(256).build())
+        return generator.generateKey()
+    }
+
+    fun available(): Boolean = runCatching { key(); true }.getOrDefault(false)
+
+    fun encrypt(raw: String): String? = runCatching {
+        val cipher = Cipher.getInstance(ALGORITHM)
+        cipher.init(Cipher.ENCRYPT_MODE, key())
+        val iv = Base64.encodeToString(cipher.iv, Base64.NO_WRAP)
+        val encrypted = Base64.encodeToString(
+            cipher.doFinal(raw.toByteArray(Charsets.UTF_8)), Base64.NO_WRAP)
+        "$PREFIX$iv:$encrypted"
+    }.getOrNull()
+
+    fun decrypt(encoded: String): String? = runCatching {
+        if (!isEncrypted(encoded)) return null
+        val fields = encoded.removePrefix(PREFIX).split(':')
+        if (fields.size != 2) return null
+        val iv = Base64.decode(fields[0], Base64.NO_WRAP)
+        if (iv.size != 12) return null
+        val ciphertext = Base64.decode(fields[1], Base64.NO_WRAP)
+        val cipher = Cipher.getInstance(ALGORITHM)
+        cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, iv))
+        String(cipher.doFinal(ciphertext), Charsets.UTF_8)
+    }.getOrNull()
+}
