@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -17,6 +18,7 @@ class ResultPage extends StatefulWidget {
 
 class _ResultPageState extends State<ResultPage> {
   bool _busy = false;
+  bool _revealWifi = false;
 
   Future<void> _open() async {
     final uri = actionForPayload(widget.raw);
@@ -43,8 +45,36 @@ class _ResultPageState extends State<ResultPage> {
   }
 
   Future<void> _share() async {
-    try { await SharePlus.instance.share(ShareParams(text: widget.raw)); }
-    catch (_) { _message('Dijeljenje nije uspjelo.'); }
+    try {
+      final renderBox = context.findRenderObject() as RenderBox?;
+      await SharePlus.instance.share(ShareParams(
+        text: widget.raw,
+        sharePositionOrigin: renderBox == null ? null : renderBox.localToGlobal(Offset.zero) & renderBox.size,
+      ));
+    } catch (_) {
+      _message('Dijeljenje nije uspjelo.');
+    }
+  }
+
+  void _showQr() {
+    if (!fitsQrPayload(widget.raw)) {
+      _message('Sadržaj je predugačak za prikaz QR koda.');
+      return;
+    }
+    showModalBottomSheet<void>(context: context, showDragHandle: true,
+      isScrollControlled: true,
+      builder: (dialogContext) => SafeArea(child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Text('QR kod', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 20),
+          Container(padding: const EdgeInsets.all(18), color: Colors.white,
+            child: QrImageView(data: widget.raw, size: 220,
+              version: QrVersions.auto, errorCorrectionLevel: QrErrorCorrectLevel.M)),
+          const SizedBox(height: 14),
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Zatvori')),
+        ]),
+      )));
   }
 
   Future<void> _save() async {
@@ -87,7 +117,23 @@ class _ResultPageState extends State<ResultPage> {
                 Text(kind.label, style: const TextStyle(fontWeight: FontWeight.bold)),
               ]),
               const SizedBox(height: 16),
-              SelectableText(widget.raw, style: const TextStyle(fontSize: 17, height: 1.45)),
+              if (kind == QrKind.wifi) ...[
+                Text('Mreža: ${wifiField(widget.raw, 'S') ?? 'Nepoznato'}',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                Row(children: [
+                  Expanded(child: Text(_revealWifi
+                    ? 'Lozinka: ${wifiField(widget.raw, 'P')?.isNotEmpty == true ? wifiField(widget.raw, 'P') : 'Otvorena mreža'}'
+                    : 'Lozinka: ••••••••')),
+                  IconButton(tooltip: _revealWifi ? 'Sakrij lozinku' : 'Prikaži lozinku',
+                    onPressed: () => setState(() => _revealWifi = !_revealWifi),
+                    icon: Icon(_revealWifi ? Icons.visibility_off_outlined : Icons.visibility_outlined)),
+                ]),
+                const SizedBox(height: 5),
+                const Text('Wi-Fi sadržaj nije automatski spremljen u povijest.',
+                  style: TextStyle(fontSize: 12, color: QrexPalette.muted)),
+              ] else
+                SelectableText(widget.raw, style: const TextStyle(fontSize: 17, height: 1.45)),
               if (link) ...[
                 const SizedBox(height: 14),
                 const Text('Provjeri adresu prije otvaranja. Sigurnost poveznice nije provjerena.',
@@ -114,6 +160,14 @@ class _ResultPageState extends State<ResultPage> {
               icon: const Icon(Icons.share_outlined), label: const Text('Podijeli'))),
           ]),
           const SizedBox(height: 11),
+          QrexButton(label: 'Prikaži QR kod', secondary: true,
+            icon: Icons.qr_code_2_outlined,
+            onPressed: fitsQrPayload(widget.raw) ? _showQr : null),
+          const SizedBox(height: 11),
+          if (kind == QrKind.wifi)
+            const Padding(padding: EdgeInsets.only(bottom: 12),
+              child: Text('Spremanjem Wi-Fi koda spremit će se i lozinka u lokalnu pohranu.',
+                style: TextStyle(color: QrexPalette.muted, fontSize: 12))),
           QrexButton(label: saved ? 'Spremljeno' : 'Spremi u aplikaciju',
             secondary: true, icon: saved ? Icons.bookmark : Icons.bookmark_outline,
             onPressed: saved ? null : _save),
