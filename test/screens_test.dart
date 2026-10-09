@@ -64,7 +64,8 @@ void main() {
     expect(find.text('Skeniraj iz slike'), findsOneWidget);
     await tester.tap(find.text('Stvori QR'));
     expect(selected, 1);
-    await tester.scrollUntilVisible(find.text('Spremanje povijesti'), 200);
+    await tester.scrollUntilVisible(find.text('Spremanje povijesti'), 200,
+      scrollable: find.byType(Scrollable).first);
     expect(find.text('Spremanje povijesti'), findsOneWidget);
     store.dispose();
   });
