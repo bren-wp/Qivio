@@ -1,0 +1,135 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../core/app_store.dart';
+import '../core/qr_payload.dart';
+import '../ui/qrex_theme.dart';
+
+class ResultPage extends StatefulWidget {
+  const ResultPage({super.key, required this.store, required this.raw});
+  final AppStore store;
+  final String raw;
+  @override
+  State<ResultPage> createState() => _ResultPageState();
+}
+
+class _ResultPageState extends State<ResultPage> {
+  bool _busy = false;
+
+  Future<void> _open() async {
+    final uri = actionForPayload(widget.raw);
+    if (uri == null) return;
+    setState(() => _busy = true);
+    try {
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        _message('Na uređaju nema aplikacije za ovu radnju.');
+      }
+    } catch (_) {
+      _message('Nije moguće otvoriti sadržaj.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _message(String text) {
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
+
+  Future<void> _copy() async {
+    await Clipboard.setData(ClipboardData(text: widget.raw));
+    _message('Kopirano.');
+  }
+
+  Future<void> _share() async {
+    try { await SharePlus.instance.share(ShareParams(text: widget.raw)); }
+    catch (_) { _message('Dijeljenje nije uspjelo.'); }
+  }
+
+  Future<void> _save() async {
+    await widget.store.save(widget.raw);
+    _message('Spremljeno na uređaj.');
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final kind = detectKind(widget.raw);
+    final action = actionForPayload(widget.raw);
+    final link = kind == QrKind.link;
+    final saved = widget.store.isSaved(widget.raw);
+    return Scaffold(
+      appBar: AppBar(title: const Text('Rezultat')),
+      body: SafeArea(child: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          const SizedBox(height: 25),
+          Center(child: Container(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: QrexPalette.primary.withValues(alpha: .16),
+              borderRadius: BorderRadius.circular(24)),
+            child: Icon(iconForKind(kind), size: 43, color: QrexPalette.cyan),
+          )),
+          const SizedBox(height: 20),
+          Text('Skeniranje završeno', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center),
+          const SizedBox(height: 6),
+          Text(kind.label, style: const TextStyle(color: QrexPalette.muted), textAlign: TextAlign.center),
+          const SizedBox(height: 25),
+          Card(child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Icon(iconForKind(kind), color: QrexPalette.primary),
+                const SizedBox(width: 10),
+                Text(kind.label, style: const TextStyle(fontWeight: FontWeight.bold)),
+              ]),
+              const SizedBox(height: 16),
+              SelectableText(widget.raw, style: const TextStyle(fontSize: 17, height: 1.45)),
+              if (link) ...[
+                const SizedBox(height: 14),
+                const Text('Provjeri adresu prije otvaranja. Sigurnost poveznice nije provjerena.',
+                  style: TextStyle(fontSize: 12, color: QrexPalette.muted)),
+              ],
+            ]),
+          )),
+          const SizedBox(height: 18),
+          if (action != null) ...[
+            QrexButton(label: switch (kind) {
+              QrKind.link => 'Otvori poveznicu',
+              QrKind.email => 'Pošalji e-mail',
+              QrKind.phone => 'Nazovi broj',
+              QrKind.location => 'Otvori kartu',
+              _ => 'Otvori',
+            }, icon: Icons.open_in_new_rounded, onPressed: _busy ? null : _open),
+            const SizedBox(height: 10),
+          ],
+          Row(children: [
+            Expanded(child: OutlinedButton.icon(onPressed: _copy,
+              icon: const Icon(Icons.copy_rounded), label: const Text('Kopiraj'))),
+            const SizedBox(width: 10),
+            Expanded(child: OutlinedButton.icon(onPressed: _share,
+              icon: const Icon(Icons.share_outlined), label: const Text('Podijeli'))),
+          ]),
+          const SizedBox(height: 11),
+          QrexButton(label: saved ? 'Spremljeno' : 'Spremi u aplikaciju',
+            secondary: true, icon: saved ? Icons.bookmark : Icons.bookmark_outline,
+            onPressed: saved ? null : _save),
+        ],
+      )),
+    );
+  }
+}
+
+IconData iconForKind(QrKind kind) => switch (kind) {
+  QrKind.link => Icons.link_rounded,
+  QrKind.wifi => Icons.wifi_rounded,
+  QrKind.contact => Icons.person_outline_rounded,
+  QrKind.email => Icons.mail_outline_rounded,
+  QrKind.phone => Icons.call_outlined,
+  QrKind.text => Icons.description_outlined,
+  QrKind.location => Icons.place_outlined,
+  QrKind.event => Icons.event_outlined,
+};

@@ -1,0 +1,22 @@
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+coverage/
+*.iml
+.idea/
+.vscode/
+# Generated native projects are created by flutter create / CI
+android/
+ios/
+!assets/
+# Local signing material
+*.jks
+*.keystore
+*.p12
+*.mobileprovision
+.env
