@@ -50,6 +50,15 @@ final class QREXCoreTests: XCTestCase {
             $0.raw == "https://brendigo.com" && $0.saved
         })
         XCTAssertNil(UserDefaults.standard.string(forKey: "flutter.qrex_history_v1"))
+        if let migrated = restored.items.first {
+            let calendar = Calendar(identifier: .gregorian)
+            let components = calendar.dateComponents(in: TimeZone(secondsFromGMT: 0)!, from: migrated.timestamp)
+            XCTAssertEqual(components.year, 2026)
+            XCTAssertEqual(components.month, 10)
+            XCTAssertEqual(components.day, 9)
+        } else {
+            XCTFail("Missing migrated entry")
+        }
         restored.clearAll()
     }
 

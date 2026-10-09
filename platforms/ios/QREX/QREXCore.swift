@@ -131,6 +131,9 @@ final class QREXStore: ObservableObject {
               let rows = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]]
         else { return }
         let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let basicFormatter = ISO8601DateFormatter()
+        basicFormatter.formatOptions = [.withInternetDateTime]
         var known = Set(items.map(\.raw))
         var merged = items
         for row in rows.prefix(250) {
@@ -138,7 +141,9 @@ final class QREXStore: ObservableObject {
                   known.insert(raw).inserted else { continue }
             let dateText = row["date"] as? String ?? ""
             let date = formatter.date(from: dateText)
-                ?? formatter.date(from: dateText + "Z") ?? Date()
+                ?? formatter.date(from: dateText + "Z")
+                ?? basicFormatter.date(from: dateText)
+                ?? basicFormatter.date(from: dateText + "Z") ?? Date()
             merged.append(QRHistoryItem(id: UUID(), raw: raw,
                                         timestamp: date, saved: row["saved"] as? Bool ?? false))
             if merged.count == 250 { break }
