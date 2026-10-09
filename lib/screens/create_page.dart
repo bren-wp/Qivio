@@ -28,6 +28,8 @@ class _CreatePageState extends State<CreatePage> {
   final _qrKey = GlobalKey();
   QrKind _kind = QrKind.link;
   bool _hiddenNetwork = false;
+  bool _wifiPasswordVisible = false;
+  bool _showAdvanced = false;
   DateTime _start = DateTime.now().add(const Duration(days: 1));
   DateTime _end = DateTime.now().add(const Duration(days: 1, hours: 1));
   bool _busy = false;
@@ -41,6 +43,11 @@ class _CreatePageState extends State<CreatePage> {
   String _get(String name) => _fields[name]!.text.trim();
 
   String? get _payload {
+    final data = _rawPayload;
+    return data != null && fitsQrPayload(data) ? data : null;
+  }
+
+  String? get _rawPayload {
     switch (_kind) {
       case QrKind.link:
         final raw = _get('url');
@@ -60,11 +67,7 @@ class _CreatePageState extends State<CreatePage> {
         return _get('phone').isEmpty ? null : qrPhone(_get('phone'));
       case QrKind.location:
         final value = _get('location');
-        final pair = value.split(',');
-        if (pair.length != 2) return null;
-        final lat = double.tryParse(pair[0].trim()), lon = double.tryParse(pair[1].trim());
-        if (lat == null || lon == null || lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
-        return qrLocation(value);
+        return validCoordinates(value) ? qrLocation(value) : null;
       case QrKind.event:
         return _get('event').isEmpty || !_end.isAfter(_start) ? null :
           qrEvent(title: _get('event'), start: _start, end: _end);
@@ -78,6 +81,8 @@ class _CreatePageState extends State<CreatePage> {
       onChanged: (_) => setState(() {}),
       keyboardType: keyboard,
       obscureText: obscure,
+      enableSuggestions: !obscure,
+      autocorrect: !obscure,
       minLines: lines,
       maxLines: lines,
       decoration: InputDecoration(labelText: label, hintText: hint),
@@ -89,7 +94,21 @@ class _CreatePageState extends State<CreatePage> {
     QrKind.text => [_field('text', 'Tekst', hint: 'Unesi tekst', lines: 3)],
     QrKind.wifi => [
       _field('ssid', 'Naziv Wi-Fi mreže (SSID)'),
-      _field('password', 'Lozinka (prazno za otvorenu mrežu)'),
+      Padding(padding: const EdgeInsets.only(bottom: 12), child: TextField(
+        controller: _fields['password'],
+        onChanged: (_) => setState(() {}),
+        obscureText: !_wifiPasswordVisible,
+        enableSuggestions: false,
+        autocorrect: false,
+        decoration: InputDecoration(
+          labelText: 'Lozinka (prazno za otvorenu mrežu)',
+          suffixIcon: IconButton(
+            tooltip: _wifiPasswordVisible ? 'Sakrij lozinku' : 'Prikaži lozinku',
+            onPressed: () => setState(() => _wifiPasswordVisible = !_wifiPasswordVisible),
+            icon: Icon(_wifiPasswordVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+          ),
+        ),
+      )),
       SwitchListTile(
         title: const Text('Skrivena mreža'), value: _hiddenNetwork,
         onChanged: (v) => setState(() => _hiddenNetwork = v),
@@ -199,17 +218,40 @@ class _CreatePageState extends State<CreatePage> {
           borderRadius: BorderRadius.all(Radius.circular(3)))),
       const SizedBox(height: 18),
       Wrap(spacing: 8, runSpacing: 8, children: [
-        for (final type in QrKind.values)
+        for (final type in <QrKind>[
+          QrKind.link, QrKind.text, QrKind.wifi, QrKind.contact,
+          if (_showAdvanced) ...[
+            QrKind.email, QrKind.phone, QrKind.location, QrKind.event,
+          ],
+        ])
           ChoiceChip(
             label: Text(type.label),
             avatar: Icon(iconForKind(type), size: 18),
             selected: _kind == type,
             onSelected: (_) => setState(() => _kind = type),
           ),
+        ActionChip(
+          avatar: Icon(_showAdvanced ? Icons.expand_less : Icons.more_horiz, size: 18),
+          label: Text(_showAdvanced ? 'Manje' : 'Više'),
+          onPressed: () => setState(() {
+            _showAdvanced = !_showAdvanced;
+            if (!_showAdvanced && !<QrKind>[
+              QrKind.link, QrKind.text, QrKind.wifi, QrKind.contact,
+            ].contains(_kind)) _kind = QrKind.link;
+          }),
+        ),
       ]),
       const SizedBox(height: 22),
       ..._inputFields(),
-      const SizedBox(height: 16),
+      const SizedBox(height: 12),
+      if (_rawPayload != null && _payload == null)
+        const Padding(padding: EdgeInsets.only(bottom: 12),
+          child: Text('Sadržaj je predugačak za pouzdan QR kod. Skrati podatke.',
+            style: TextStyle(color: Colors.orangeAccent))),
+      if (_kind == QrKind.wifi)
+        const Padding(padding: EdgeInsets.only(bottom: 12),
+          child: Text('Wi-Fi QR kod sadrži lozinku. Nemoj ga dijeliti s nepoznatim osobama.',
+            style: TextStyle(color: QrexPalette.muted, fontSize: 12))),
       Card(child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 12),
         child: Column(children: [
@@ -249,7 +291,7 @@ class _CreatePageState extends State<CreatePage> {
           icon: const Icon(Icons.copy_rounded), label: const Text('Kopiraj'))),
       ]),
       const SizedBox(height: 8),
-      const Text('Kod se izrađuje na tvom uređaju.', textAlign: TextAlign.center,
+      const Text('Kod se izrađuje na tvom uređaju. Spremljeni QR kodovi ostaju u lokalnoj pohrani.', textAlign: TextAlign.center,
         style: TextStyle(color: QrexPalette.muted, fontSize: 12)),
     ]));
   }
