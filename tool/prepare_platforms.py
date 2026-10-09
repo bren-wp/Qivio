@@ -139,17 +139,17 @@ def enforce_android_sdk() -> None:
     content = path.read_text(encoding="utf-8")
     if path.suffix == ".kts":
         patterns = (
-            (r"(?m)^([ \\t]*)compileSdk = (?:flutter\\.compileSdkVersion|[0-9]+)\\s*$",
-             r"\\g<1>compileSdk = 36"),
-            (r"(?m)^([ \\t]*)targetSdk = (?:flutter\\.targetSdkVersion|[0-9]+)\\s*$",
-             r"\\g<1>targetSdk = 36"),
+            (r"(?m)^([ \t]*)compileSdk = (?:flutter\.compileSdkVersion|[0-9]+)\s*$",
+             r"\g<1>compileSdk = 36"),
+            (r"(?m)^([ \t]*)targetSdk = (?:flutter\.targetSdkVersion|[0-9]+)\s*$",
+             r"\g<1>targetSdk = 36"),
         )
     else:
         patterns = (
-            (r"(?m)^([ \\t]*)compileSdkVersion (?:flutter\\.compileSdkVersion|[0-9]+)\\s*$",
-             r"\\g<1>compileSdkVersion 36"),
-            (r"(?m)^([ \\t]*)targetSdkVersion (?:flutter\\.targetSdkVersion|[0-9]+)\\s*$",
-             r"\\g<1>targetSdkVersion 36"),
+            (r"(?m)^([ \t]*)compileSdkVersion (?:flutter\.compileSdkVersion|[0-9]+)\s*$",
+             r"\g<1>compileSdkVersion 36"),
+            (r"(?m)^([ \t]*)targetSdkVersion (?:flutter\.targetSdkVersion|[0-9]+)\s*$",
+             r"\g<1>targetSdkVersion 36"),
         )
     for pattern, replacement in patterns:
         content, count = re.subn(pattern, replacement, content)
@@ -179,18 +179,18 @@ def add_ios_privacy_manifest() -> None:
     reference_id = uuid.uuid5(uuid.NAMESPACE_URL, "qrex:privacy:file").hex[:24].upper()
     build_id = uuid.uuid5(uuid.NAMESPACE_URL, "qrex:privacy:build").hex[:24].upper()
     reference = (
-        f"\\t\\t{reference_id} /* PrivacyInfo.xcprivacy */ = "
+        f"\t\t{reference_id} /* PrivacyInfo.xcprivacy */ = "
         '{isa = PBXFileReference; lastKnownFileType = text.xml; '
-        'path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };\\n'
+        'path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };\n'
     )
     build = (
-        f"\\t\\t{build_id} /* PrivacyInfo.xcprivacy in Resources */ = "
-        f"{{isa = PBXBuildFile; fileRef = {reference_id} /* PrivacyInfo.xcprivacy */; }};\\n"
+        f"\t\t{build_id} /* PrivacyInfo.xcprivacy in Resources */ = "
+        f"{{isa = PBXBuildFile; fileRef = {reference_id} /* PrivacyInfo.xcprivacy */; }};\n"
     )
 
     def add_to_section(name: str, item: str) -> None:
         nonlocal content
-        marker = f"/* Begin {name} section */\\n"
+        marker = f"/* Begin {name} section */\n"
         if marker not in content:
             raise SystemExit(f"iOS project missing section: {name}")
         content = content.replace(marker, marker + item, 1)
@@ -200,12 +200,12 @@ def add_ios_privacy_manifest() -> None:
 
     # Only touch the Runner group and Runner resources phase; avoid Pods targets.
     group = re.compile(
-        r"(?P<head>[0-9A-F]{24} /\\* Runner \\*/ = \\{\\s*"
-        r"isa = PBXGroup;\\s*children = \\(\\s*\\n)"
+        r"(?P<head>[0-9A-F]{24} /\* Runner \*/ = \{\s*"
+        r"isa = PBXGroup;\s*children = \(\s*\n)"
     )
     content, group_count = group.subn(
         lambda m: m.group("head") +
-        f"\\t\\t\\t\\t{reference_id} /* PrivacyInfo.xcprivacy */,\\n",
+        f"\t\t\t\t{reference_id} /* PrivacyInfo.xcprivacy */,\n",
         content,
         count=1,
     )
@@ -218,9 +218,9 @@ def add_ios_privacy_manifest() -> None:
     prefix, tail = content.split(begin, 1)
     resources, suffix = tail.split(end, 1)
     resources, resources_count = re.subn(
-        r"(files = \\(\\s*\\n)",
+        r"(files = \(\s*\n)",
         lambda m: m.group(1) +
-        f"\\t\\t\\t\\t{build_id} /* PrivacyInfo.xcprivacy in Resources */,\\n",
+        f"\t\t\t\t{build_id} /* PrivacyInfo.xcprivacy in Resources */,\n",
         resources,
         count=1,
     )
