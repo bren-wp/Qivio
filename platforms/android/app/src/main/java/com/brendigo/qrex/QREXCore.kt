@@ -100,7 +100,11 @@ class QREXStore(context: Context) {
                 items += QRRecord(raw, item.optLong("timestamp"), item.optBoolean("saved"))
             }
         }
-        if (upgradeNeeded) persist()
+        if (upgradeNeeded && !persist()) {
+            // Never leave previous plaintext credentials on disk if encryption fails.
+            items.removeAll { QRContent.isWifi(it.raw) }
+            if (!persist()) preferences.edit().remove("history").commit()
+        }
     }
 
     fun record(raw: String) {

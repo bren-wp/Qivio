@@ -27,6 +27,19 @@ final class QREXCoreTests: XCTestCase {
     }
 
     @MainActor
+    func testKeychainHistoryNeverFallsBackToPlainPreferences() {
+        let store = QREXStore()
+        store.clearAll()
+        let payload = QRContent.wifi(ssid: "Private Network", password: "never-in-defaults")
+        store.save(payload)
+        XCTAssertEqual(store.items.first?.raw, payload)
+        XCTAssertNil(UserDefaults.standard.data(forKey: "qrex.history"))
+        XCTAssertNotNil(QREXHistoryVault.read())
+        store.clearAll()
+        XCTAssertNil(QREXHistoryVault.read())
+    }
+
+    @MainActor
     func testNoAutomaticWifiHistory() {
         let store = QREXStore()
         store.clearAll()

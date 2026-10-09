@@ -91,16 +91,33 @@ final class QREXStore: ObservableObject {
         lightMode = defaults.bool(forKey: "qrex.light")
         language = defaults.string(forKey: "qrex.language") ?? "en"
         let legacy = defaults.data(forKey: "qrex.history")
-        // Migrate plaintext history to device-only Keychain storage.
-        // A failed migration must not leave Wi-Fi secrets in UserDefaults.
-        if let legacy {
+        // Device-only Keychain items can survive reinstall on some OS versions.
+        // Reset orphaned items on a truly fresh installation, but keep legacy data.
+        if defaults.object(forKey: "qrex.installation.vault") == nil {
+            if legacy == nil { QREXHistoryVault.delete() }
+            defaults.set(true, forKey: "qrex.installation.vault")
+        }
+        var stored = QREXHistoryVault.read()
+        if let legacy, stored == nil {
             if QREXHistoryVault.write(legacy) {
                 defaults.removeObject(forKey: "qrex.history")
+                stored = legacy
             } else {
-                defaults.removeObject(forKey: "qrex.history")
+                // Fall back to non-secret history only; never keep plaintext
+                // Wi-Fi credentials after a failed Keychain migration.
+                let nonSecret = (try? JSONDecoder().decode([QRHistoryItem].self, from: legacy))?
+                    .filter { !QRContent.isWifi($0.raw) } ?? []
+                if let safe = try? JSONEncoder().encode(nonSecret) {
+                    defaults.set(safe, forKey: "qrex.history")
+                    stored = safe
+                } else {
+                    defaults.removeObject(forKey: "qrex.history")
+                }
             }
+        } else if stored != nil && legacy != nil {
+            defaults.removeObject(forKey: "qrex.history")
         }
-        if let data = QREXHistoryVault.read(),
+        if let data = stored,
            let loaded = try? JSONDecoder().decode([QRHistoryItem].self, from: data) {
             var unique: Set<String> = []
             items = Array(loaded.filter { unique.insert($0.raw).inserted && $0.raw.count <= 10000 }.prefix(250))
