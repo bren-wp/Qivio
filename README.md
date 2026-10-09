@@ -27,13 +27,13 @@ Scan a QR code, preview its contents, then choose exactly what happens next. Cre
 
 ### Actual application screenshots
 
-The screenshots below are captured from **the running QREX application in an Android emulator and an iPhone simulator**, not generated marketing mockups. Their images are produced and validated by the [screenshot workflow](https://github.com/bren-wp/Qivio/actions/workflows/capture-screenshots.yml). If images are not present, the automated capture has not passed yet.
+Only verified **runtime screenshots of the application** are shown below. The iOS image was captured from a running iPhone simulator; the Android image is withheld until its emulator capture passes. These are not generated marketing mockups. [Screenshot verification workflow](https://github.com/bren-wp/Qivio/actions/workflows/capture-screenshots.yml).
 
 <table>
-<tr><th>Android · Create</th><th>iOS · Create</th></tr>
+<tr><th>iOS · Create (verified simulator capture)</th><th>Android · Create (capture pending)</th></tr>
 <tr>
-<td align="center"><img src="docs/screenshots/android-create.png" alt="Actual QREX Android QR creation screen in English" width="290"></td>
-<td align="center"><img src="docs/screenshots/ios-create.png" alt="Actual QREX iOS QR creation screen in English" width="290"></td>
+<td align="center"><img src="docs/screenshots/ios-create.png" alt="Actual QREX iPhone simulator QR creation screen in English" width="290"></td>
+<td align="center">The Android screen will be displayed here after a real emulator capture passes image validation. <a href="https://github.com/bren-wp/Qivio/actions/workflows/capture-screenshots.yml">View screenshot QA</a>.</td>
 </tr>
 </table>
 
