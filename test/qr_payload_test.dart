@@ -57,7 +57,7 @@ void main() {
     expect(wifiField(payload, 'P'), password);
     expect(wifiField(payload, 'T'), 'WPA');
     expect(wifiField(payload, 'X'), isNull);
-    expect(wifiField(r'WIFI:S:broken\', 'S'), isNull);
+    expect(wifiField('WIFI:S:broken' + String.fromCharCode(92), 'S'), isNull);
   });
 
   test('suspicious URL and e-mail content is never opened automatically', () {

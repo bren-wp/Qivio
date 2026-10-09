@@ -50,9 +50,22 @@ Uri? actionForPayload(String raw) {
     final value = raw.trim();
     final target = value.toLowerCase().startsWith('mailto:') ? value : 'mailto:$value';
     final uri = Uri.tryParse(target);
-    if (uri == null || uri.scheme != 'mailto' || uri.hasAuthority ||
-        RegExp(r'[\r\n]').hasMatch(uri.path) ||
-        !RegExp(r'^[^\s@,;?]+@[^\s@,;?]+\.[^\s@,;?]+
+    if (uri == null || uri.scheme != 'mailto' || uri.hasAuthority) return null;
+    final address = uri.path;
+    final parts = address.split('@');
+    if (parts.length != 2 || parts.first.isEmpty ||
+        !parts.last.contains('.') || parts.last.startsWith('.') ||
+        parts.last.endsWith('.') || RegExp(r'[\s\r\n]').hasMatch(address)) {
+      return null;
+    }
+    try {
+      if (uri.queryParameters.values.any(
+          (part) => RegExp(r'[\r\n]').hasMatch(part))) return null;
+    } on FormatException {
+      return null;
+    }
+    return uri;
+  }
   if (type == QrKind.phone) {
     final number = raw.trim().substring(4);
     if (!RegExp(r'^\+?[0-9 ()\-.#*]{1,40}$').hasMatch(number)) return null;
@@ -137,7 +150,7 @@ String? wifiField(String raw, String field) {
     if (escaped) {
       (readingValue ? value : key).write(ch);
       escaped = false;
-    } else if (ch == r'\') {
+    } else if (ch.codeUnitAt(0) == 92) {
       escaped = true;
     } else if (ch == ';') {
       finish();
