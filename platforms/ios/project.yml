@@ -1,5 +1,6 @@
 name: QREX
 options:
+  developmentLanguage: en
   bundleIdPrefix: com.brendigo
   deploymentTarget:
     iOS: "16.0"

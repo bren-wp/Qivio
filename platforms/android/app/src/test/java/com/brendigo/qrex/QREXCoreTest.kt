@@ -4,6 +4,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class QREXCoreTest {
+    @Test fun languageChoicesContainEnglishAndCroatian() {
+        assertEquals(23, QREXStrings.languages.size)
+        assertEquals("en", QREXStrings.languages.first())
+        assertTrue("hr" in QREXStrings.languages)
+    }
+
+
     @Test fun wifiEscapesDelimiters() {
         val raw = QRContent.wifi("Office;P:fake", "a\\b:c")
         assertEquals("Office;P:fake", QRContent.wifiField(raw, "S"))
