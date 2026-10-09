@@ -1,0 +1,214 @@
+import AVFoundation
+import SwiftUI
+import PhotosUI
+import Vision
+import UIKit
+
+struct CameraScanner: UIViewRepresentable {
+    let onRead: (String) -> Void
+    @Binding var torchOn: Bool
+
+    func makeCoordinator() -> Coordinator { Coordinator(onRead: onRead) }
+
+    func makeUIView(context: Context) -> CameraView {
+        let view = CameraView()
+        let coordinator = context.coordinator
+        coordinator.preview = view.preview
+        coordinator.start()
+        return view
+    }
+
+    func updateUIView(_ uiView: CameraView, context: Context) {
+        context.coordinator.setTorch(torchOn)
+    }
+
+    static func dismantleUIView(_ uiView: CameraView, coordinator: Coordinator) {
+        coordinator.stop()
+    }
+
+    final class CameraView: UIView {
+        override class var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
+        var preview: AVCaptureVideoPreviewLayer { layer as! AVCaptureVideoPreviewLayer }
+    }
+
+    final class Coordinator: NSObject, AVCaptureMetadataOutputObjectsDelegate {
+        let session = AVCaptureSession()
+        let queue = DispatchQueue(label: "com.brendigo.qrex.camera", qos: .userInitiated)
+        let onRead: (String) -> Void
+        weak var preview: AVCaptureVideoPreviewLayer?
+        private var consumed = false
+        private var configured = false
+
+        init(onRead: @escaping (String) -> Void) { self.onRead = onRead }
+
+        func start() {
+            queue.async { [weak self] in
+                guard let self else { return }
+                guard AVCaptureDevice.authorizationStatus(for: .video) == .authorized else { return }
+                guard let device = AVCaptureDevice.default(for: .video),
+                      let input = try? AVCaptureDeviceInput(device: device) else { return }
+                if !self.configured {
+                    self.session.beginConfiguration()
+                    defer { self.session.commitConfiguration() }
+                    guard self.session.canAddInput(input) else { return }
+                    self.session.addInput(input)
+                    let output = AVCaptureMetadataOutput()
+                    guard self.session.canAddOutput(output) else { return }
+                    self.session.addOutput(output)
+                    output.setMetadataObjectsDelegate(self, queue: .main)
+                    output.metadataObjectTypes = [.qr]
+                    self.configured = true
+                }
+                DispatchQueue.main.async { [weak self] in
+                    self?.preview?.session = self?.session
+                    self?.preview?.videoGravity = .resizeAspectFill
+                }
+                if !self.session.isRunning { self.session.startRunning() }
+            }
+        }
+
+        func stop() {
+            queue.async { [weak self] in
+                guard let self else { return }
+                if self.session.isRunning { self.session.stopRunning() }
+            }
+        }
+
+        func setTorch(_ enabled: Bool) {
+            queue.async {
+                guard let device = AVCaptureDevice.default(for: .video), device.hasTorch,
+                      (try? device.lockForConfiguration()) != nil else { return }
+                defer { device.unlockForConfiguration() }
+                device.torchMode = enabled ? .on : .off
+            }
+        }
+
+        func metadataOutput(_ output: AVCaptureMetadataOutput,
+                            didOutput objects: [AVMetadataObject],
+                            from connection: AVCaptureConnection) {
+            guard !consumed, let code = objects.compactMap({ $0 as? AVMetadataMachineReadableCodeObject })
+                .first(where: { $0.type == .qr })?.stringValue, !code.isEmpty else { return }
+            consumed = true
+            onRead(code)
+        }
+    }
+}
+
+struct ScanScreen: View {
+    @EnvironmentObject private var store: QREXStore
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var access: AVAuthorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
+    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var code: String?
+    @State private var torch = false
+    @State private var message: String?
+    @State private var cameraRevision = 0
+
+    var body: some View {
+        ZStack {
+            QREXColors.background.ignoresSafeArea()
+            VStack(spacing: 20) {
+                Text("QREX").font(.system(size: 30, weight: .black, design: .rounded))
+                    .foregroundStyle(QREXColors.cyan)
+                Text("Skeniraj QR kod").font(.title2.bold()).foregroundStyle(.white)
+                ZStack {
+                    if access == .authorized {
+                        CameraScanner(onRead: receive, torchOn: $torch)
+                            .id(cameraRevision)
+                            .clipShape(RoundedRectangle(cornerRadius: 28))
+                    } else {
+                        RoundedRectangle(cornerRadius: 28)
+                            .fill(QREXColors.card)
+                        VStack(spacing: 12) {
+                            Image(systemName: "camera.fill").font(.system(size: 36))
+                            Text("Dopusti pristup kameri za skeniranje.")
+                                .multilineTextAlignment(.center)
+                            Button("Omogući kameru") { requestCamera() }
+                                .buttonStyle(.borderedProminent)
+                        }.foregroundStyle(.white).padding()
+                    }
+                    RoundedRectangle(cornerRadius: 28)
+                        .stroke(QREXColors.cyan, lineWidth: 3)
+                        .padding(16).allowsHitTesting(false)
+                }
+                .frame(maxHeight: 350)
+                .padding(.horizontal, 22)
+                HStack(spacing: 20) {
+                    Button {
+                        torch.toggle()
+                    } label: {
+                        Label("Svjetiljka", systemImage: torch ? "flashlight.on.fill" : "flashlight.off.fill")
+                    }.buttonStyle(.bordered).disabled(access != .authorized)
+                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                        Label("Iz galerije", systemImage: "photo")
+                    }.buttonStyle(.bordered)
+                }.tint(QREXColors.cyan)
+                Text("Usmjeri kameru prema QR kodu")
+                    .font(.footnote).foregroundStyle(.gray)
+            }.padding(.vertical, 18)
+        }
+        .task { requestCamera() }
+        .onChange(of: selectedPhoto) { item in
+            Task { await readPhoto(item) }
+        }
+        .onChange(of: scenePhase) { phase in
+            if phase == .active { cameraRevision += 1 }
+        }
+        .sheet(item: Binding(
+            get: { code.map { ResultPayload(raw: $0) } },
+            set: { if $0 == nil { code = nil; torch = false; cameraRevision += 1 } }
+        )) { item in
+            ResultScreen(raw: item.raw)
+        }
+        .alert("QREX", isPresented: Binding(
+            get: { message != nil },
+            set: { if !$0 { message = nil } }
+        )) {
+            Button("U redu", role: .cancel) { message = nil }
+        } message: { Text(message ?? "") }
+    }
+
+    private func requestCamera() {
+        if AVCaptureDevice.authorizationStatus(for: .video) == .notDetermined {
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                DispatchQueue.main.async {
+                    access = granted ? .authorized : .denied
+                }
+            }
+        } else {
+            access = AVCaptureDevice.authorizationStatus(for: .video)
+        }
+    }
+
+    private func receive(_ value: String) {
+        guard code == nil else { return }
+        store.record(value)
+        code = value
+    }
+
+    private func readPhoto(_ item: PhotosPickerItem?) async {
+        guard let item else { return }
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self) else {
+                message = "Fotografiju nije moguće otvoriti."; return
+            }
+            // Limit oversized images to avoid avoidable memory pressure.
+            guard data.count < 20_000_000 else {
+                message = "Fotografija je prevelika."; return
+            }
+            let request = VNDetectBarcodesRequest()
+            request.symbologies = [.qr]
+            try await Task.detached(priority: .userInitiated) {
+                try VNImageRequestHandler(data: data).perform([request])
+            }.value
+            if let raw = request.results?.compactMap(\.payloadStringValue).first {
+                receive(raw)
+            } else {
+                message = "Na fotografiji nije pronađen QR kod."
+            }
+        } catch {
+            message = "Čitanje fotografije nije uspjelo."
+        }
+        selectedPhoto = nil
+    }
+}

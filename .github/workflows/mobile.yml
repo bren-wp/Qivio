@@ -4,6 +4,14 @@ on:
   push:
     branches: [main]
   pull_request:
+    paths:
+      - "lib/**"
+      - "test/**"
+      - "pubspec.yaml"
+      - "analysis_options.yaml"
+      - "tool/prepare_platforms.py"
+      - "tool/verify_platforms.py"
+      - ".github/workflows/mobile.yml"
   workflow_dispatch:
 
 concurrency:

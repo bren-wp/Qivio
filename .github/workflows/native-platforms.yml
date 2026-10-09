@@ -1,0 +1,86 @@
+name: Kotlin and Swift Platforms
+
+on:
+  pull_request:
+    paths:
+      - "platforms/**"
+      - ".github/workflows/native-platforms.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: platforms-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    name: Kotlin Android compile and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Verify Android SDK from hosted runner
+        run: |
+          test -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          test -d "$ANDROID_HOME/platforms/android-36" || "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-36"
+          test -d "$ANDROID_HOME/build-tools/36.0.0" || "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "build-tools;36.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.13"
+      - name: Check production UI labels
+        run: python3 tool/check_public_ui.py
+      - name: Compile Kotlin app and execute unit tests
+        working-directory: platforms/android
+        run: gradle --no-daemon --stacktrace :app:assembleDebug :app:testDebugUnitTest
+      - name: Confirm Android package
+        run: test -s platforms/android/app/build/outputs/apk/debug/app-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: QREX-Kotlin-Android-debug
+          path: platforms/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+  ios:
+    name: SwiftUI iOS simulator compile
+    runs-on: macos-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate bundled QREX app icon
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          from tool.prepare_platforms import render_png
+          dest = Path("platforms/ios/QREX/Assets.xcassets/AppIcon.appiconset")
+          dest.mkdir(parents=True, exist_ok=True)
+          render_png(dest / "AppIcon.png", 1024)
+          (dest / "Contents.json").write_text(json.dumps({
+            "images": [{"filename":"AppIcon.png","idiom":"universal","platform":"ios","size":"1024x1024"}],
+            "info": {"author":"xcode","version":1}
+          }), encoding="utf-8")
+          PY
+      - name: Generate Xcode project
+        working-directory: platforms/ios
+        run: xcodegen generate --spec project.yml
+      - name: Compile SwiftUI app for iOS simulator
+        working-directory: platforms/ios
+        run: |
+          xcodebuild -project QREX.xcodeproj -scheme QREX \
+            -configuration Release -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+      - name: Verify iOS binary and privacy manifest
+        working-directory: platforms/ios
+        run: |
+          test -s build/Build/Products/Release-iphonesimulator/QREX.app/QREX
+          test -s build/Build/Products/Release-iphonesimulator/QREX.app/PrivacyInfo.xcprivacy
+          plutil -lint build/Build/Products/Release-iphonesimulator/QREX.app/PrivacyInfo.xcprivacy
