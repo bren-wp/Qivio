@@ -41,6 +41,9 @@ fun ScanScreen(onRead: (String) -> Unit) {
         allowed = it
     }
     var message by remember { mutableStateOf<String?>(null) }
+    val imageFailed = tr("image_failed")
+    val qrNotFound = tr("qr_not_found")
+    val cameraFailed = tr("camera_failed")
     val handled = remember { AtomicBoolean(false) }
     val options = remember {
         BarcodeScannerOptions.Builder()
@@ -50,16 +53,16 @@ fun ScanScreen(onRead: (String) -> Unit) {
         if (uri != null) {
             val image = runCatching { InputImage.fromFilePath(context, uri) }.getOrNull()
             if (image == null) {
-                message = "Fotografiju nije moguće otvoriti."
+                message = imageFailed
             } else {
                 val client = BarcodeScanning.getClient(options)
                 client.process(image).addOnSuccessListener { codes ->
                     val raw = codes.firstOrNull { it.format == Barcode.FORMAT_QR_CODE }?.rawValue
                     if (!raw.isNullOrEmpty()) {
                         if (handled.compareAndSet(false, true)) onRead(raw)
-                    } else message = "Na fotografiji nije pronađen QR kod."
+                    } else message = qrNotFound
                 }.addOnFailureListener {
-                    message = "Fotografiju nije moguće pročitati."
+                    message = imageFailed
                 }.addOnCompleteListener { client.close() }
             }
         }
@@ -72,7 +75,7 @@ fun ScanScreen(onRead: (String) -> Unit) {
         Text("QREX", color = Color(0xFF10C5FA),
             style = MaterialTheme.typography.headlineLarge)
         Spacer(Modifier.height(12.dp))
-        Text("Skeniraj QR kod", style = MaterialTheme.typography.titleLarge)
+        Text(tr("scan_qr"), style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(20.dp))
         if (allowed) {
             val preview = remember { PreviewView(context) }
@@ -106,7 +109,7 @@ fun ScanScreen(onRead: (String) -> Unit) {
                         provider.unbindAll()
                         provider.bindToLifecycle(owner, CameraSelector.DEFAULT_BACK_CAMERA,
                             cameraPreview, analyzer)
-                    }.onFailure { message = "Kamera trenutačno nije dostupna." }
+                    }.onFailure { message = cameraFailed }
                 }, ContextCompat.getMainExecutor(context))
                 onDispose {
                     disposed.set(true)
@@ -121,20 +124,20 @@ fun ScanScreen(onRead: (String) -> Unit) {
             Box(Modifier.fillMaxWidth().weight(1f)
                 .background(Color(0xFF101B2C), shape = RoundedCornerShape(28.dp)),
                 contentAlignment = Alignment.Center) {
-                Text("Omogući kameru u postavkama uređaja za skeniranje QR kodova.",
+                Text(tr("allow_camera"),
                     modifier = Modifier.padding(20.dp))
             }
         }
         Spacer(Modifier.height(16.dp))
         OutlinedButton(onClick = { photoPicker.launch("image/*") }) {
-            Text("Skeniraj iz slike")
+            Text(tr("from_gallery"))
         }
         Spacer(Modifier.height(8.dp))
-        Text("Usmjeri kameru prema QR kodu.", color = Color.LightGray)
+        Text(tr("point_camera"), color = Color.LightGray)
     }
 
     if (message != null) AlertDialog(onDismissRequest = { message = null },
         title = { Text("QREX") },
         text = { Text(message ?: "") },
-        confirmButton = { TextButton(onClick = { message = null }) { Text("U redu") } })
+        confirmButton = { TextButton(onClick = { message = null }) { Text(tr("ok")) } })
 }

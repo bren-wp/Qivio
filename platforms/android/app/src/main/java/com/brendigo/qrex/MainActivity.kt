@@ -37,6 +37,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
+import java.util.Locale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -56,6 +59,15 @@ private val cyan = Color(0xFF10C5FA)
 private val purple = Color(0xFF9047F8)
 private val white = Color.White
 
+private val LocalLanguage = compositionLocalOf { "en" }
+
+@Composable
+fun tr(key: String): String {
+    val context = LocalContext.current
+    val language = LocalLanguage.current
+    return remember(context, language, key) { QREXStrings.get(context, language, key) }
+}
+
 class MainActivity : ComponentActivity() {
     private val store by lazy { QREXStore(applicationContext) }
 
@@ -67,7 +79,9 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun QREXApp(store: QREXStore) {
-    val pages = listOf("Skeniraj", "Stvori", "Povijest", "Više")
+    val context = LocalContext.current
+    val pages = listOf("scan", "create", "history", "more")
+        .map { QREXStrings.get(context, store.language, it) }
     val icons = listOf(Icons.Default.CameraAlt, Icons.Default.AddCircle,
         Icons.Default.History, Icons.Default.MoreHoriz)
     var selected by remember { mutableIntStateOf(0) }
@@ -79,6 +93,7 @@ private fun QREXApp(store: QREXStore) {
     ) else darkColorScheme(primary = cyan, secondary = purple,
         background = midnight, surface = card, onSurface = white, onBackground = white)
     MaterialTheme(colorScheme = colors) {
+        CompositionLocalProvider(LocalLanguage provides store.language) {
         Scaffold(containerColor = colors.background, bottomBar = {
             NavigationBar(containerColor = if (store.lightMode) Color.White else Color(0xFF071225)) {
                 pages.forEachIndexed { index, label ->
@@ -108,6 +123,7 @@ private fun QREXApp(store: QREXStore) {
                     }
                 }
             }
+        }
         }
     }
 }
@@ -139,6 +155,9 @@ private fun ResultScreen(raw: String, store: QREXStore, onClose: () -> Unit) {
     var confirmWifiSave by remember(raw) { mutableStateOf(false) }
     val wifi = QRContent.isWifi(raw)
     val alreadySaved = store.items.any { it.raw == raw && it.saved }
+    val copied = tr("copied")
+    val sharingFailed = tr("share_failed")
+    val shareTitle = tr("share")
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally) {
         Text("QREX", color = cyan, fontWeight = FontWeight.Black, fontSize = 29.sp)
@@ -146,50 +165,50 @@ private fun ResultScreen(raw: String, store: QREXStore, onClose: () -> Unit) {
         Icon(Icons.Default.QrCode, contentDescription = null,
             tint = cyan, modifier = Modifier.size(68.dp))
         Spacer(Modifier.height(14.dp))
-        Text("Skeniranje završeno", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold,
+        Text(tr("scan_complete"), color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold,
             fontSize = 23.sp)
         Spacer(Modifier.height(18.dp))
         Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface) {
             Column(Modifier.fillMaxWidth().padding(18.dp)) {
                 if (wifi) {
-                    Text("Mreža: ${QRContent.wifiField(raw, "S") ?: "Wi-Fi"}",
+                    Text("${tr("network")}: ${QRContent.wifiField(raw, "S") ?: tr("wifi")}",
                         fontWeight = FontWeight.Bold)
                     Text(if (showPassword)
-                        "Lozinka: ${QRContent.wifiField(raw, "P") ?: ""}" else "Lozinka: ••••••••")
+                        "${tr("password")}: ${QRContent.wifiField(raw, "P") ?: ""}" else "${tr("password")}: ••••••••")
                     TextButton(onClick = { showPassword = !showPassword }) {
-                        Text(if (showPassword) "Sakrij lozinku" else "Prikaži lozinku")
+                        Text(if (showPassword) tr("hide") else tr("show"))
                     }
                 } else {
                     Text(raw, color = MaterialTheme.colorScheme.onSurface)
-                    if (url != null) Text("Provjeri adresu prije otvaranja.",
+                    if (url != null) Text(tr("check_url"),
                         color = Color.LightGray, fontSize = 12.sp)
                 }
             }
         }
         Spacer(Modifier.height(15.dp))
         if (url != null) {
-            PrimaryAction("Otvori poveznicu") { openLink(context, url) }
+            PrimaryAction(tr("open_link")) { openLink(context, url) }
             Spacer(Modifier.height(10.dp))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlinedButton(onClick = {
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                 clipboard.setPrimaryClip(android.content.ClipData.newPlainText("QR", raw))
-                Toast.makeText(context, "Kopirano.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, copied, Toast.LENGTH_SHORT).show()
             }, modifier = Modifier.weight(1f)) {
                 Icon(Icons.Default.ContentCopy, contentDescription = null)
-                Spacer(Modifier.width(6.dp)); Text("Kopiraj")
+                Spacer(Modifier.width(6.dp)); Text(tr("copy"))
             }
             OutlinedButton(onClick = {
                 runCatching {
                     context.startActivity(Intent.createChooser(
                         Intent(Intent.ACTION_SEND).setType("text/plain")
-                            .putExtra(Intent.EXTRA_TEXT, raw), "Podijeli QR"))
+                            .putExtra(Intent.EXTRA_TEXT, raw), shareTitle))
                 }.onFailure { Toast.makeText(context,
-                    "Dijeljenje nije dostupno.", Toast.LENGTH_SHORT).show() }
+                    sharingFailed, Toast.LENGTH_SHORT).show() }
             }, modifier = Modifier.weight(1f)) {
                 Icon(Icons.Default.Share, contentDescription = null)
-                Spacer(Modifier.width(6.dp)); Text("Podijeli")
+                Spacer(Modifier.width(6.dp)); Text(tr("share"))
             }
         }
         Spacer(Modifier.height(12.dp))
@@ -199,20 +218,20 @@ private fun ResultScreen(raw: String, store: QREXStore, onClose: () -> Unit) {
                 modifier = Modifier.size(230.dp).background(white).padding(12.dp))
         }
         Spacer(Modifier.height(12.dp))
-        PrimaryAction(if (alreadySaved) "Spremljeno" else "Spremi kod", enabled = !alreadySaved) {
+        PrimaryAction(if (alreadySaved) tr("saved") else tr("save_qr"), enabled = !alreadySaved) {
             if (wifi) confirmWifiSave = true else store.save(raw)
         }
         Spacer(Modifier.height(10.dp))
-        TextButton(onClick = onClose) { Text("Zatvori") }
+        TextButton(onClick = onClose) { Text(tr("close")) }
     }
     if (confirmWifiSave) {
         AlertDialog(onDismissRequest = { confirmWifiSave = false },
-            title = { Text("Spremanje Wi-Fi koda") },
-            text = { Text("Spremit će se i Wi-Fi lozinka u lokalnu pohranu uređaja.") },
+            title = { Text(tr("wifi_save_title")) },
+            text = { Text(tr("wifi_save_warning")) },
             confirmButton = { TextButton(onClick = {
                 store.save(raw); confirmWifiSave = false
-            }) { Text("Spremi") } },
-            dismissButton = { TextButton(onClick = { confirmWifiSave = false }) { Text("Odustani") } })
+            }) { Text(tr("save")) } },
+            dismissButton = { TextButton(onClick = { confirmWifiSave = false }) { Text(tr("cancel")) } })
     }
 }
 
@@ -220,7 +239,9 @@ fun openLink(context: Context, url: Uri) {
     runCatching {
         context.startActivity(Intent(Intent.ACTION_VIEW, url))
     }.onFailure {
-        Toast.makeText(context, "Poveznicu nije moguće otvoriti.", Toast.LENGTH_SHORT).show()
+        val language = context.getSharedPreferences("qrex.user", Context.MODE_PRIVATE)
+            .getString("language", "en") ?: "en"
+        Toast.makeText(context, QREXStrings.get(context, language, "link_failed"), Toast.LENGTH_SHORT).show()
     }
 }
 
@@ -242,7 +263,7 @@ fun generateQR(raw: String): Bitmap? {
 
 @Composable
 private fun CreateScreen(store: QREXStore, onResult: (String) -> Unit) {
-    val types = listOf("Poveznica", "Tekst", "Wi-Fi", "E-mail", "Telefon", "Lokacija", "Kontakt")
+    val types = listOf(tr("url"), tr("text"), tr("wifi"), tr("email"), tr("phone"), tr("location"), tr("contact"))
     var kind by remember { mutableIntStateOf(0) }
     var content by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -266,7 +287,7 @@ private fun CreateScreen(store: QREXStore, onResult: (String) -> Unit) {
     }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
-        AppHeader("Stvori QR kod", "Odaberi vrstu i unesi podatke.")
+        AppHeader(tr("create_qr"), tr("enter_details"))
         types.take(if (more) types.size else 3).chunked(3).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                 row.forEach { type ->
@@ -279,7 +300,7 @@ private fun CreateScreen(store: QREXStore, onResult: (String) -> Unit) {
             }
         }
         TextButton(onClick = { more = !more; if (!more && kind > 2) kind = 0 }) {
-            Text(if (more) "Manje mogućnosti" else "Više mogućnosti")
+            Text(if (more) tr("fewer_options") else tr("more_options"))
         }
         Spacer(Modifier.height(10.dp))
         OutlinedTextField(value = content, onValueChange = { content = it.take(2000) },
@@ -289,33 +310,33 @@ private fun CreateScreen(store: QREXStore, onResult: (String) -> Unit) {
         if (kind == 2) {
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(value = password, onValueChange = { password = it.take(500) },
-                modifier = Modifier.fillMaxWidth(), label = { Text("Lozinka (neobavezno)") },
+                modifier = Modifier.fillMaxWidth(), label = { Text(tr("optional_password")) },
                 visualTransformation = if (reveal) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
                     TextButton(onClick = { reveal = !reveal }) {
-                        Text(if (reveal) "Sakrij" else "Prikaži")
+                        Text(if (reveal) tr("hide") else tr("show"))
                     }
                 })
-            Text("Wi-Fi QR kod može sadržavati lozinku.", fontSize = 12.sp,
+            Text(tr("wifi_warning"), fontSize = 12.sp,
                 color = Color.LightGray)
         }
         Spacer(Modifier.height(18.dp))
         Surface(shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.surface,
             modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Pregled koda", fontWeight = FontWeight.Bold)
+                Text(tr("qr_preview"), fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(16.dp))
                 val previewBitmap = qr
                 if (previewBitmap != null) Image(previewBitmap.asImageBitmap(), contentDescription = "QR kod",
                     modifier = Modifier.size(238.dp).background(white).padding(14.dp))
-                else Text("Unesi valjane podatke za QR kod.", color = Color.LightGray)
+                else Text(tr("invalid_content"), color = Color.LightGray)
             }
         }
         Spacer(Modifier.height(12.dp))
-        PrimaryAction("Prikaži QR kod", enabled = qr != null) { onResult(payload) }
+        PrimaryAction(tr("show_qr"), enabled = qr != null) { onResult(payload) }
         Spacer(Modifier.height(10.dp))
         OutlinedButton(onClick = { store.save(payload) }, enabled = qr != null,
-            modifier = Modifier.fillMaxWidth()) { Text("Spremi kod") }
+            modifier = Modifier.fillMaxWidth()) { Text(tr("save_qr")) }
     }
 }
 
@@ -324,12 +345,12 @@ private fun HistoryScreen(store: QREXStore, onOpen: (String) -> Unit) {
     var search by remember { mutableStateOf("") }
     val found = store.items.filter { QRContent.label(it.raw).contains(search, ignoreCase = true) }
     Column(Modifier.fillMaxSize().padding(20.dp)) {
-        AppHeader("Povijest", "Spremljeni QR kodovi na uređaju.")
+        AppHeader(tr("history"), tr("history_local"))
         OutlinedTextField(value = search, onValueChange = { search = it },
-            label = { Text("Pretraži kodove") }, modifier = Modifier.fillMaxWidth())
+            label = { Text(tr("search_qr")) }, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(12.dp))
         if (found.isEmpty()) {
-            Text("Nema spremljenih kodova.", color = Color.LightGray)
+            Text(tr("no_saved"), color = Color.LightGray)
         }
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(found, key = { it.raw }) { item ->
@@ -357,35 +378,54 @@ private fun MoreScreen(store: QREXStore) {
     val context = LocalContext.current
     var showDelete by remember { mutableStateOf(false) }
     var showPrivacy by remember { mutableStateOf(false) }
+    var languageMenu by remember { mutableStateOf(false) }
+    val selectedLanguage = store.language
+    val languageName = if (selectedLanguage == "system") tr("system") else
+        Locale.forLanguageTag(selectedLanguage).getDisplayName(Locale.forLanguageTag(selectedLanguage))
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
-        AppHeader("Više", "Sve na jednom mjestu.")
-        Text("Postavke", color = MaterialTheme.colorScheme.onBackground, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        AppHeader(tr("more"), tr("history_local"))
+        Text(tr("settings"), color = MaterialTheme.colorScheme.onBackground, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Spremanje povijesti", Modifier.weight(1f))
+            Text(tr("save_history"), Modifier.weight(1f))
             Switch(checked = store.historyEnabled, onCheckedChange = store::updateHistoryEnabled)
         }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Svijetli izgled", Modifier.weight(1f))
+            Text(tr("light_theme"), Modifier.weight(1f))
             Switch(checked = store.lightMode, onCheckedChange = store::updateLightMode)
         }
-        OutlinedButton(onClick = { showDelete = true }) { Text("Izbriši sve podatke") }
+        OutlinedButton(onClick = { showDelete = true }) { Text(tr("delete_all")) }
         Spacer(Modifier.height(20.dp))
-        Text("Privatnost", color = MaterialTheme.colorScheme.onBackground, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        TextButton(onClick = { showPrivacy = true }) { Text("Pravila privatnosti") }
+        Text(tr("privacy"), color = MaterialTheme.colorScheme.onBackground, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        TextButton(onClick = { showPrivacy = true }) { Text(tr("privacy")) }
         Spacer(Modifier.height(20.dp))
-        Text("O aplikaciji", color = MaterialTheme.colorScheme.onBackground, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text(tr("language"), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Box {
+            OutlinedButton(onClick = { languageMenu = true }) { Text(languageName) }
+            DropdownMenu(expanded = languageMenu, onDismissRequest = { languageMenu = false }) {
+                DropdownMenuItem(text = { Text(tr("system")) }, onClick = {
+                    store.updateLanguage("system"); languageMenu = false
+                })
+                QREXStrings.languages.forEach { localeCode ->
+                    DropdownMenuItem(text = {
+                        Text(Locale.forLanguageTag(localeCode).getDisplayName(Locale.forLanguageTag(localeCode)))
+                    }, onClick = { store.updateLanguage(localeCode); languageMenu = false })
+                }
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+        Text(tr("about"), color = MaterialTheme.colorScheme.onBackground, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Text("QREX", color = Color.LightGray)
         TextButton(onClick = {
             openLink(context, Uri.parse("https://brendigo.com"))
-        }) { Text("Razvio Brendigo") }
+        }) { Text(tr("developed_by")) }
     }
     if (showDelete) AlertDialog(onDismissRequest = { showDelete = false },
         title = { Text("Izbriši sve podatke?") },
-        text = { Text("Trajno se brišu povijest, spremljeni QR kodovi i postavke.") },
-        confirmButton = { TextButton(onClick = { store.clearAll(); showDelete = false }) { Text("Izbriši sve") } },
-        dismissButton = { TextButton(onClick = { showDelete = false }) { Text("Odustani") } })
+        text = { Text(tr("delete_warning")) },
+        confirmButton = { TextButton(onClick = { store.clearAll(); showDelete = false }) { Text(tr("delete_all")) } },
+        dismissButton = { TextButton(onClick = { showDelete = false }) { Text(tr("cancel")) } })
     if (showPrivacy) AlertDialog(onDismissRequest = { showPrivacy = false },
-        title = { Text("Pravila privatnosti") },
-        text = { Text("QREX obrađuje QR kodove lokalno, bez prijave, oglasa i analitike. Povijest je opcionalna, Wi-Fi kodovi se ne spremaju automatski, a ručno spremljeni mogu sadržavati lozinku. Vanjske radnje mogu predati podatke drugoj aplikaciji. Svi lokalni podaci mogu se izbrisati ovdje. Za kontakt posjeti brendigo.com.") },
-        confirmButton = { TextButton(onClick = { showPrivacy = false }) { Text("Zatvori") } })
+        title = { Text(tr("privacy")) },
+        text = { Text(tr("privacy_summary")) },
+        confirmButton = { TextButton(onClick = { showPrivacy = false }) { Text(tr("close")) } })
 }
