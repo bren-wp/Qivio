@@ -76,6 +76,8 @@ class QREXStore(context: Context) {
         private set
     var lightMode by mutableStateOf(preferences.getBoolean("lightMode", false))
         private set
+    var language by mutableStateOf(preferences.getString("language", "en") ?: "en")
+        private set
 
     init {
         runCatching {
@@ -125,6 +127,13 @@ class QREXStore(context: Context) {
         preferences.edit().clear().apply()
         historyEnabled = true
         lightMode = false
+        language = "en"
+    }
+
+    fun updateLanguage(value: String) {
+        require(value == "system" || value in QREXStrings.languages)
+        language = value
+        preferences.edit().putString("language", value).apply()
     }
 
     fun updateHistoryEnabled(value: Boolean) {
