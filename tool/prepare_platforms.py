@@ -7,7 +7,6 @@ Uses only the Python standard library.
 from __future__ import annotations
 
 import json
-import math
 import pathlib
 import plistlib
 import struct
@@ -105,6 +104,8 @@ def android() -> None:
     if application is None:
         raise SystemExit("Missing Android application manifest node")
     application.set(f"{{{ANDROID_NS}}}label", "QREX")
+    # Keep user QR history outside automatic Android cloud backups.
+    application.set(f"{{{ANDROID_NS}}}allowBackup", "false")
     tree.write(manifest, encoding="utf-8", xml_declaration=True)
     res = app / "res"
     for directory, size in (

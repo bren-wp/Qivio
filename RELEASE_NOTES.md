@@ -1,19 +1,19 @@
-# QREX v0.1.0 — Prvo izdanje
+# QREX v0.1.1 — Pouzdanije skeniranje i profinjeniji UX
 
-**Skeniraj. Stvori. Dijeli.** Sve QR funkcije koje trebaju, bez nepotrebnih koraka.
+QREX ostaje jednostavna QR aplikacija za Android i iOS, bez prijave i bez oglasa.
 
-### Novosti
-- 📷 QR i podržani barkodovi: skeniranje kamerom, prepoznavanje koda iz fotografije, svjetiljka i zumiranje kamere kada ga uređaj podržava
-- ✨ Izrada QR kodova za poveznice, tekst, Wi-Fi, kontakte, e-mail, telefonske brojeve, lokacije i događaje
-- 🔗 Pregled sadržaja prije otvaranja poveznice; kopiranje, dijeljenje i spremanje
-- 🗂️ Lokalna povijest, pretraživanje, spremanje omiljenih sadržaja i brisanje
-- 🎨 QREX tamni vizualni identitet, plavo-ljubičaste akcijske tipke, svijetla tema i prilagođene launcher ikonice
-- 🔐 Bez korisničkog računa, oglasa, analitike i aplikacijskog poslužitelja
+### Poboljšanja
+- Stabilnije skeniranje: uklonjene utrke između galerije i kamere, pouzdanije zaustavljanje i nastavak skenera, prilagodljiv okvir skeniranja.
+- Sigurnija povijest: skeniranje ne sprema Wi-Fi lozinke automatski; već spremljeni kodovi ne dupliciraju se ponovnim skeniranjem.
+- Wi-Fi privatnost: lozinka je zadano skrivena u rezultatima, a prije ručnog spremanja prikazuje se upozorenje.
+- Rezultati: prikaz skeniranog QR koda, poboljšano dijeljenje na iPadu i dodatne provjere otvaranja vanjskih poveznica.
+- Kreator: pregledniji odabir vrsta QR kodova, kontrola vidljivosti Wi-Fi lozinke, validacija GPS koordinata i ograničenje veličine podataka.
+- Podržan veći raspon veličina zaslona. Dodani regresijski testovi sadržaja, spremanja i UI ekrana.
+- Android automatsko sigurnosno kopiranje podataka aplikacije isključeno.
 
-### Datoteke za instalaciju
-- **QREX-Android-v0.1.0.apk** — Android testna release izgradnja iz GitHub Actions. GitHub Actions koristi razvojno potpisivanje predloška; ovo **nije** izdanje potpisano za Google Play.
-- **SHA256SUMS.txt** — kontrolni zbroj APK datoteke.
-- **iOS:** CI uspješno provjerava nepotpisanu aplikaciju. Nema instalacijskog IPA paketa dok se ne konfigurira Apple signing/provisioning.
+### Datoteke i instalacija
+- **QREX-Android-v0.1.1.apk** — probni Android APK iz uspješnog GitHub Actions builda (nije potpisan za objavu na Google Playu).
+- **SHA256SUMS.txt** — SHA-256 kontrolni zbroj.
+- iOS: produkcijska kompilacija bez potpisivanja; za iPhone distribuciju potrebni su Apple certifikat i provisioning.
 
-### Napomene
-Prvo javno razvojno izdanje. Potrebna je završna vizualna provjera na fizičkim Android/iOS uređajima prema referentnim ekranima. Dizajnerske ilustracije u README-u nisu stvarne snimke zaslona.
+**Napomena:** Automatski testovi i kompilacija ne potvrđuju 1:1 podudarnost sa slikovnim predloškom niti ponašanje na svim fizičkim uređajima; završno testiranje ostaje obavezno.

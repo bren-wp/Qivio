@@ -1,4 +1,4 @@
-name: Publish first release
+name: Publish verified release
 
 on:
   workflow_run:
@@ -10,12 +10,12 @@ permissions:
   actions: read
 
 concurrency:
-  group: qrex-first-release
+  group: qrex-versioned-releases
   cancel-in-progress: false
 
 jobs:
   publish:
-    name: Publish QREX v0.1.0 after verified builds
+    name: Publish QREX after verified builds
     if: >-
       ${{ github.event.workflow_run.conclusion == 'success' &&
           github.event.workflow_run.head_branch == 'main' &&
@@ -26,9 +26,15 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       CI_SHA: ${{ github.event.workflow_run.head_sha }}
       CI_RUN: ${{ github.event.workflow_run.id }}
-      TAG: v0.1.0
     steps:
       - uses: actions/checkout@v4
+      - name: Read release tag from pubspec
+        run: |
+          set -euo pipefail
+          VERSION="$(sed -n 's/^version: \([0-9][0-9.]*\)+[0-9][0-9]*$/\1/p' pubspec.yaml)"
+          test -n "$VERSION"
+          echo "TAG=v$VERSION" >> "$GITHUB_ENV"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
       - name: Require successful checks on current main
         id: gate
         run: |
@@ -52,17 +58,17 @@ jobs:
           mkdir -p dist
           gh run download "$CI_RUN" --repo "$GITHUB_REPOSITORY" --name QREX-Android-APK --dir dist
           test -s dist/app-release.apk
-          mv dist/app-release.apk "dist/QREX-Android-v0.1.0.apk"
+          mv dist/app-release.apk "dist/QREX-Android-${VERSION}.apk"
           cd dist
-          sha256sum QREX-Android-v0.1.0.apk > SHA256SUMS.txt
-      - name: Create official v0.1.0 GitHub release and attach APK
+          sha256sum "QREX-Android-${VERSION}.apk" > SHA256SUMS.txt
+      - name: Create verified GitHub release and attach APK
         if: steps.gate.outputs.publish == 'true'
         run: |
           set -euo pipefail
-          gh release create "$TAG" dist/QREX-Android-v0.1.0.apk dist/SHA256SUMS.txt \
+          gh release create "$TAG" "dist/QREX-Android-${VERSION}.apk" dist/SHA256SUMS.txt \
             --repo "$GITHUB_REPOSITORY" \
             --target "$CI_SHA" \
-            --title "QREX v0.1.0 — Prvo izdanje" \
+            --title "QREX ${TAG} — Android i iOS" \
             --notes-file RELEASE_NOTES.md \
             --latest
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json tagName,assets,url

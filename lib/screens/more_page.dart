@@ -92,7 +92,7 @@ class MorePage extends StatelessWidget {
         const SizedBox(height: 20),
         const Center(child: QrexWordmark()),
         const SizedBox(height: 5),
-        const Center(child: Text('Verzija 0.1.0', style: TextStyle(color: QrexPalette.muted))),
+        const Center(child: Text('Verzija 0.1.1', style: TextStyle(color: QrexPalette.muted))),
       ])),
     );
   }
