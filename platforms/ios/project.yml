@@ -32,6 +32,10 @@ targets:
   QREXTests:
     type: bundle.unit-test
     platform: iOS
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
+        PRODUCT_BUNDLE_IDENTIFIER: com.brendigo.qrex.tests
     sources:
       - path: QREXTests
     dependencies:
