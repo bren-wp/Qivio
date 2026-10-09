@@ -70,7 +70,7 @@ Skeniranje i generiranje izvode se na uređaju. Povijest je lokalna, opcionalna 
 ## Instalacija
 
 ### Android
-Otvori **[Releases](https://github.com/bren-wp/Qivio/releases/latest)** i preuzmi **QREX-Android-0.1.2.apk**. GitHub izdanje uključuje i SHA-256 kontrolni zbroj. APK je početna testna izgradnja, ne Google Play distribucija.
+Otvori **[Releases](https://github.com/bren-wp/Qivio/releases/latest)** i preuzmi **QREX-Android-0.1.3.apk**. GitHub izdanje uključuje i SHA-256 kontrolni zbroj. APK je početna testna izgradnja, ne Google Play distribucija.
 
 ### iOS
 Za iOS se u GitHub Actions automatski gradi nepotpisana aplikacija. Instalacijski IPA i objava na App Storeu zahtijevaju Apple certifikat, provisioning profile i završne provjere.

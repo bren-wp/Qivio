@@ -227,7 +227,7 @@ class MorePage extends StatelessWidget {
               ListTile(
                 leading: const QrexMark(size: 40),
                 title: const Text('QREX'),
-                subtitle: const Text('Verzija 0.1.2 · Android i iOS'),
+                subtitle: const Text('Verzija 0.1.3 · Android i iOS'),
               ),
               const Divider(height: 1),
               ListTile(

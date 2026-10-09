@@ -40,8 +40,12 @@ class _ResultPageState extends State<ResultPage> {
   }
 
   Future<void> _copy() async {
-    await Clipboard.setData(ClipboardData(text: widget.raw));
-    _message('Kopirano.');
+    try {
+      await Clipboard.setData(ClipboardData(text: widget.raw));
+      _message('Kopirano.');
+    } catch (_) {
+      _message('Kopiranje nije uspjelo.');
+    }
   }
 
   Future<void> _share() async {
@@ -78,9 +82,16 @@ class _ResultPageState extends State<ResultPage> {
   }
 
   Future<void> _save() async {
-    await widget.store.save(widget.raw);
-    _message('Spremljeno na uređaj.');
-    if (mounted) setState(() {});
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await widget.store.save(widget.raw);
+      _message('Spremljeno na uređaj.');
+    } catch (_) {
+      _message('Spremanje nije uspjelo. Provjeri slobodan prostor na uređaju.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   @override
@@ -170,7 +181,7 @@ class _ResultPageState extends State<ResultPage> {
                 style: TextStyle(color: QrexPalette.muted, fontSize: 12))),
           QrexButton(label: saved ? 'Spremljeno' : 'Spremi u aplikaciju',
             secondary: true, icon: saved ? Icons.bookmark : Icons.bookmark_outline,
-            onPressed: saved ? null : _save),
+            onPressed: saved || _busy ? null : _save),
         ],
       )),
     );

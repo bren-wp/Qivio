@@ -168,15 +168,23 @@ class _CreatePageState extends State<CreatePage> {
   Future<void> _copy() async {
     final data = _payload;
     if (data == null) return;
-    await Clipboard.setData(ClipboardData(text: data));
-    _message('QR sadržaj je kopiran.');
+    try {
+      await Clipboard.setData(ClipboardData(text: data));
+      _message('QR sadržaj je kopiran.');
+    } catch (_) {
+      _message('Kopiranje nije uspjelo.');
+    }
   }
 
   Future<void> _save() async {
     final data = _payload;
     if (data == null) return;
-    await widget.store.save(data);
-    _message('QR kod je spremljen.');
+    try {
+      await widget.store.save(data);
+      _message('QR kod je spremljen.');
+    } catch (_) {
+      _message('Spremanje nije uspjelo. Provjeri slobodan prostor na uređaju.');
+    }
   }
 
   Future<void> _shareImage() async {

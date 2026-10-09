@@ -9,6 +9,7 @@ class AppStore extends ChangeNotifier {
   final List<ScanEntry> _entries = [];
   bool _light = false;
   bool _historyEnabled = true;
+  Future<void> _lastWrite = Future<void>.value();
 
   static const maxHistory = 250;
   static const _historyKey = 'qrex_history_v1';
@@ -76,23 +77,47 @@ class AppStore extends ChangeNotifier {
     _light = false;
     _historyEnabled = true;
     notifyListeners();
-    await _prefs.remove(_historyKey);
-    await _prefs.remove('qrex_light_v1');
-    await _prefs.remove('qrex_record_v1');
+    await _write(() async {
+      if (!await _prefs.remove(_historyKey)) throw StateError('History deletion failed');
+      if (!await _prefs.remove('qrex_light_v1')) throw StateError('Theme reset failed');
+      if (!await _prefs.remove('qrex_record_v1')) throw StateError('Settings reset failed');
+    });
   }
 
   Future<void> setLight(bool value) async {
     _light = value;
     notifyListeners();
-    await _prefs.setBool('qrex_light_v1', value);
+    await _write(() async {
+      if (!await _prefs.setBool('qrex_light_v1', value)) {
+        throw StateError('Theme persistence failed');
+      }
+    });
   }
 
   Future<void> setHistoryEnabled(bool value) async {
     _historyEnabled = value;
     notifyListeners();
-    await _prefs.setBool('qrex_record_v1', value);
+    await _write(() async {
+      if (!await _prefs.setBool('qrex_record_v1', value)) {
+        throw StateError('History setting persistence failed');
+      }
+    });
   }
 
-  Future<void> _persist() async =>
-      _prefs.setString(_historyKey, encodeEntries(_entries));
+  Future<void> _persist() {
+    // Capture snapshots immediately; writes must not overtake later deletions.
+    final snapshot = encodeEntries(_entries);
+    return _write(() async {
+      if (!await _prefs.setString(_historyKey, snapshot)) {
+        throw StateError('History persistence failed');
+      }
+    });
+  }
+
+  Future<void> _write(Future<void> Function() operation) {
+    final queued = _lastWrite.then((_) => operation());
+    // Report errors to each caller, but do not block future writes forever.
+    _lastWrite = queued.then<void>((_) {}, onError: (Object _) {});
+    return queued;
+  }
 }

@@ -1,20 +1,12 @@
-# QREX v0.1.2 — Privatnost, stabilnost i platforme
+# QREX v0.1.3 — Pouzdanija pohrana i sigurniji QR sadržaji
 
-Nastavak razvoja QREX QR skenera i kreatora za Android i iOS.
+- Wi-Fi QR parser prepoznaje eskapirane točke sa zarezom, dvotočke, zareze i obrnute kose crte bez zabune oko razdjelnika.
+- URL i e-mail radnje imaju strože provjere kontrolnih znakova i formata.
+- Lokalni zapisi i postavke upisuju se redoslijedom, uključujući brisanje podataka.
+- Kopiranje i spremanje sada hvataju pogreške sustava te ih jasno prikazuju umjesto prekida radnje.
+- Regresijski testovi pokrivaju Wi-Fi kodove s posebnim znakovima i paralelne operacije spremanja.
+- „Razvio Brendigo”, lokalna pravila privatnosti i QREX identitet ostaju dostupni u postavkama.
 
-### Novi sadržaj
-- U **Više → O aplikaciji** dodano **„Razvio Brendigo”** s poveznicom na brendigo.com.
-- U postavke dodana lako dostupna pravila privatnosti koja se čitaju offline i njihova javna verzija.
-- Postavljen recovery zaslon za pogreške inicijalizacije lokalne pohrane, s mogućnošću ponovnog pokušaja.
-- Android koristi API 36 i isključuje automatski backup te nešifrirani mrežni promet same aplikacije.
-- iOS projekt uključuje privacy manifest aplikacije i opise korištenja kamere/fotografija.
-- CI dodatno provjerava platformsku konfiguraciju; izrađuje Android APK i AAB, iOS bez potpisivanja.
+Android CI izrađuje APK i AAB, iOS se kompilira bez potpisivanja. Instalacijski iOS IPA zahtijeva Appleov certifikat i provisioning profile; Android Store distribucija zahtijeva produkcijsko potpisivanje i završnu provjeru na fizičkim uređajima.
 
-### Sigurnost i objava
-- Nema korisničkog računa, integrirane analitike ni reklamnog sustava.
-- QR kodovi obrađuju se lokalno; vanjske poveznice otvaraju se samo korisničkim izborom.
-- Instalacijski Android APK na GitHubu je testna release izgradnja, nije potpisan produkcijskim Play upload ključem.
-- iOS kompilacija ne isporučuje instalacijski IPA bez Appleovog potpisivanja.
-
-### Status
-Automatska analiza i izgradnje nisu dokaz potpune 1:1 podudarnosti sa slikovnim predloškom, odsutnosti rušenja na svim uređajima ni konačnog prihvaćanja u trgovinama. Prije službene objave izvršiti [checklistu](docs/STORE_CHECKLIST.md) i testirati stvarne telefone.
+Automatska provjera ne dokazuje potpunu 1:1 podudarnost sa slikovnim predloškom ni rad bez rušenja na svim uređajima.
