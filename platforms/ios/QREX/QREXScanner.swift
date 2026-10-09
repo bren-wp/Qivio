@@ -3,6 +3,7 @@ import SwiftUI
 import PhotosUI
 import Vision
 import UIKit
+import ImageIO
 
 struct CameraScanner: UIViewRepresentable {
     let onRead: (String) -> Void
@@ -112,10 +113,13 @@ struct ScanScreen: View {
                     .foregroundStyle(QREXColors.cyan)
                 Text(tr("scan_qr")).font(.title2.bold()).foregroundStyle(.white)
                 ZStack {
-                    if access == .authorized {
+                    if access == .authorized && scenePhase == .active {
                         CameraScanner(onRead: receive, torchOn: $torch)
                             .id(cameraRevision)
                             .clipShape(RoundedRectangle(cornerRadius: 28))
+                    } else if access == .authorized {
+                        RoundedRectangle(cornerRadius: 28)
+                            .fill(QREXColors.card)
                     } else {
                         RoundedRectangle(cornerRadius: 28)
                             .fill(QREXColors.card)
@@ -138,7 +142,7 @@ struct ScanScreen: View {
                         torch.toggle()
                     } label: {
                         Label(tr("flashlight"), systemImage: torch ? "flashlight.on.fill" : "flashlight.off.fill")
-                    }.buttonStyle(.bordered).disabled(access != .authorized)
+                    }.buttonStyle(.bordered).disabled(access != .authorized || scenePhase != .active)
                     PhotosPicker(selection: $selectedPhoto, matching: .images) {
                         Label(tr("from_gallery"), systemImage: "photo")
                     }.buttonStyle(.bordered)
@@ -152,7 +156,14 @@ struct ScanScreen: View {
             Task { await readPhoto(item) }
         }
         .onChange(of: scenePhase) { phase in
-            if phase == .active { cameraRevision += 1 }
+            if phase == .active {
+                cameraRevision += 1
+            } else {
+                torch = false
+            }
+        }
+        .onDisappear {
+            torch = false
         }
         .sheet(item: Binding(
             get: { code.map { ResultPayload(raw: $0) } },
@@ -193,7 +204,13 @@ struct ScanScreen: View {
                 message = tr("image_failed"); return
             }
             // Limit oversized images to avoid avoidable memory pressure.
-            guard data.count < 20_000_000 else {
+            guard data.count < 20_000_000,
+                  let source = CGImageSourceCreateWithData(data as CFData, nil),
+                  let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+                  let width = properties[kCGImagePropertyPixelWidth] as? Int,
+                  let height = properties[kCGImagePropertyPixelHeight] as? Int,
+                  width > 0, height > 0,
+                  Int64(width) * Int64(height) <= 24_000_000 else {
                 message = tr("image_failed"); return
             }
             let request = VNDetectBarcodesRequest()
