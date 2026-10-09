@@ -29,6 +29,9 @@ import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -69,11 +72,15 @@ private fun QREXApp(store: QREXStore) {
         Icons.Default.History, Icons.Default.MoreHoriz)
     var selected by remember { mutableIntStateOf(0) }
     var currentCode by remember { mutableStateOf<String?>(null) }
-    val colors = darkColorScheme(primary = cyan, secondary = purple,
+    val colors = if (store.lightMode) lightColorScheme(
+        primary = Color(0xFF1677FF), secondary = purple,
+        background = Color(0xFFF3F6FF), surface = Color.White,
+        onSurface = midnight, onBackground = midnight
+    ) else darkColorScheme(primary = cyan, secondary = purple,
         background = midnight, surface = card, onSurface = white, onBackground = white)
     MaterialTheme(colorScheme = colors) {
-        Scaffold(containerColor = midnight, bottomBar = {
-            NavigationBar(containerColor = Color(0xFF071225)) {
+        Scaffold(containerColor = colors.background, bottomBar = {
+            NavigationBar(containerColor = if (store.lightMode) Color.White else Color(0xFF071225)) {
                 pages.forEachIndexed { index, label ->
                     NavigationBarItem(selected = selected == index,
                         onClick = { selected = index; currentCode = null },
@@ -108,7 +115,8 @@ private fun QREXApp(store: QREXStore) {
 @Composable
 private fun AppHeader(title: String, subtitle: String) {
     Column(Modifier.fillMaxWidth().padding(bottom = 18.dp)) {
-        Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp, color = white)
+        Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp,
+            color = MaterialTheme.colorScheme.onBackground)
         Spacer(Modifier.height(6.dp))
         Text(subtitle, fontSize = 13.sp, color = Color(0xFF9FB1CC))
     }
@@ -138,10 +146,10 @@ private fun ResultScreen(raw: String, store: QREXStore, onClose: () -> Unit) {
         Icon(Icons.Default.QrCode, contentDescription = null,
             tint = cyan, modifier = Modifier.size(68.dp))
         Spacer(Modifier.height(14.dp))
-        Text("Skeniranje završeno", color = white, fontWeight = FontWeight.Bold,
+        Text("Skeniranje završeno", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold,
             fontSize = 23.sp)
         Spacer(Modifier.height(18.dp))
-        Surface(shape = RoundedCornerShape(20.dp), color = card) {
+        Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface) {
             Column(Modifier.fillMaxWidth().padding(18.dp)) {
                 if (wifi) {
                     Text("Mreža: ${QRContent.wifiField(raw, "S") ?: "Wi-Fi"}",
@@ -152,7 +160,7 @@ private fun ResultScreen(raw: String, store: QREXStore, onClose: () -> Unit) {
                         Text(if (showPassword) "Sakrij lozinku" else "Prikaži lozinku")
                     }
                 } else {
-                    Text(raw, color = white)
+                    Text(raw, color = MaterialTheme.colorScheme.onSurface)
                     if (url != null) Text("Provjeri adresu prije otvaranja.",
                         color = Color.LightGray, fontSize = 12.sp)
                 }
@@ -251,7 +259,11 @@ private fun CreateScreen(store: QREXStore, onResult: (String) -> Unit) {
         else -> if (input.isBlank()) "" else
             "BEGIN:VCARD\nVERSION:3.0\nFN:${input.replace("\n", " ")}\nEND:VCARD"
     }
-    val qr = remember(payload) { generateQR(payload) }
+    // Cancel obsolete renders when the user keeps typing; avoid blocking the UI thread.
+    val qr by produceState<Bitmap?>(initialValue = null, key1 = payload) {
+        delay(140)
+        value = withContext(Dispatchers.Default) { generateQR(payload) }
+    }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
         AppHeader("Stvori QR kod", "Odaberi vrstu i unesi podatke.")
@@ -288,7 +300,7 @@ private fun CreateScreen(store: QREXStore, onResult: (String) -> Unit) {
                 color = Color.LightGray)
         }
         Spacer(Modifier.height(18.dp))
-        Surface(shape = RoundedCornerShape(22.dp), color = card,
+        Surface(shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.surface,
             modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("Pregled koda", fontWeight = FontWeight.Bold)
@@ -315,16 +327,16 @@ private fun HistoryScreen(store: QREXStore, onOpen: (String) -> Unit) {
         OutlinedTextField(value = search, onValueChange = { search = it },
             label = { Text("Pretraži kodove") }, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(12.dp))
-        if (found.isEmpty) {
+        if (found.isEmpty()) {
             Text("Nema spremljenih kodova.", color = Color.LightGray)
         }
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(found, key = { it.raw }) { item ->
-                Surface(shape = RoundedCornerShape(15.dp), color = card) {
+                Surface(shape = RoundedCornerShape(15.dp), color = MaterialTheme.colorScheme.surface) {
                     Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
                         TextButton(onClick = { onOpen(item.raw) }, modifier = Modifier.weight(1f)) {
                             Column(horizontalAlignment = Alignment.Start) {
-                                Text(QRContent.label(item.raw), color = white)
+                                Text(QRContent.label(item.raw), color = MaterialTheme.colorScheme.onSurface)
                                 Text(DateFormat.getDateTimeInstance().format(Date(item.timestamp)),
                                     color = Color.LightGray, fontSize = 11.sp)
                             }
@@ -346,7 +358,7 @@ private fun MoreScreen(store: QREXStore) {
     var showPrivacy by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
         AppHeader("Više", "Sve na jednom mjestu.")
-        Text("Postavke", color = white, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text("Postavke", color = MaterialTheme.colorScheme.onBackground, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("Spremanje povijesti", Modifier.weight(1f))
             Switch(checked = store.historyEnabled, onCheckedChange = store::setHistoryEnabled)
@@ -357,10 +369,10 @@ private fun MoreScreen(store: QREXStore) {
         }
         OutlinedButton(onClick = { showDelete = true }) { Text("Izbriši sve podatke") }
         Spacer(Modifier.height(20.dp))
-        Text("Privatnost", color = white, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text("Privatnost", color = MaterialTheme.colorScheme.onBackground, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         TextButton(onClick = { showPrivacy = true }) { Text("Pravila privatnosti") }
         Spacer(Modifier.height(20.dp))
-        Text("O aplikaciji", color = white, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text("O aplikaciji", color = MaterialTheme.colorScheme.onBackground, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Text("QREX", color = Color.LightGray)
         TextButton(onClick = {
             openLink(context, Uri.parse("https://brendigo.com"))
