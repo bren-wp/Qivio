@@ -22,8 +22,8 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.brendigo.qrex
         PRODUCT_NAME: QREX
         INFOPLIST_KEY_CFBundleDisplayName: QREX
-        INFOPLIST_KEY_NSCameraUsageDescription: "Kamera služi samo za skeniranje QR kodova."
-        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Odaberi fotografiju za čitanje QR koda."
+        INFOPLIST_KEY_NSCameraUsageDescription: "Camera access is used only to scan QR codes."
+        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Select a photo to scan a QR code."
         INFOPLIST_KEY_UIApplicationSupportsDocumentBrowser: "NO"
         GENERATE_INFOPLIST_FILE: "YES"
         SWIFT_EMIT_LOC_STRINGS: "YES"
