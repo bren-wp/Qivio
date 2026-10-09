@@ -56,6 +56,23 @@ void main() {
     store.dispose();
   });
 
+  test('simultaneous writes and deletion never restore stale history', () async {
+    final store = await AppStore.load();
+    final writes = <Future<void>>[
+      store.record('first'),
+      store.save('second'),
+      store.record('third'),
+      store.clearAll(),
+    ];
+    await Future.wait(writes);
+    final restored = await AppStore.load();
+    expect(restored.entries, isEmpty);
+    expect(restored.historyEnabled, isTrue);
+    expect(restored.light, isFalse);
+    store.dispose();
+    restored.dispose();
+  });
+
   test('potpuno brisanje vraća lokalne postavke na početne', () async {
     final store = await AppStore.load();
     await store.save('osobni podatak');

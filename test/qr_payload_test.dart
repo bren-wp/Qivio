@@ -49,6 +49,25 @@ void main() {
     expect(fitsQrPayload('a' * 1601), isFalse);
   });
 
+  test('Wi-Fi escape parser does not misread embedded field delimiters', () {
+    final ssid = r'Office;P:fake\Network';
+    final password = r'secret;S:wrong\pass';
+    final payload = qrWifi(ssid: ssid, password: password);
+    expect(wifiField(payload, 'S'), ssid);
+    expect(wifiField(payload, 'P'), password);
+    expect(wifiField(payload, 'T'), 'WPA');
+    expect(wifiField(payload, 'X'), isNull);
+    expect(wifiField(r'WIFI:S:broken\', 'S'), isNull);
+  });
+
+  test('suspicious URL and e-mail content is never opened automatically', () {
+    expect(safeActionUri(r'https://example.com\@attacker.test'), isNull);
+    expect(safeActionUri('https://example.com/a b'), isNull);
+    expect(actionForPayload('mailto:person@example.com?subject=hello')?.scheme, 'mailto');
+    expect(actionForPayload('mailto:person@example.com?subject=hello%0D%0ABcc:evil'), isNull);
+    expect(actionForPayload('mailto:invalid-email'), isNull);
+  });
+
   test('duplikati i nevaljan lokalni JSON se ignoriraju', () {
     expect(decodeEntries('not json'), isEmpty);
     final items = [
